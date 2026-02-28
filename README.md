@@ -28,13 +28,13 @@ The repository currently includes:
 
 ## References
 
-- Terzaghi, K. (1943). *Theoretical Soil Mechanics*. Wiley.  
+- Terzaghi, K. (1943). Theoretical Soil Mechanics. Wiley.  
 
-- Biot, M. A. (1941). General theory of three-dimensional consolidation. *Journal of Applied Physics*, 12(2), 155–164.  
+- Biot, M. A. (1941). General theory of three-dimensional consolidation. Journal of Applied Physics, 12(2), 155–164.  
 
 - FEniCSx Project Documentation: https://docs.fenicsproject.org/
 
-- Larson, M. G., & Bengzon, F. (2013). *The Finite Element Method: Theory, Implementation, and Applications*. Springer.  
+- Larson, M. G., & Bengzon, F. (2013). The Finite Element Method: Theory, Implementation, and Applications. Springer.  
 
 
 

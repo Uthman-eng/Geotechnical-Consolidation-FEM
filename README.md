@@ -1,4 +1,4 @@
-# Finite Element Methods for Geotechnical Consolidation (One Dimensional)
+# Finite Element Methods for Geotechnical Consolidation
 
 This repository implements FEniCSx to model excess pore pressure dissipation in soils over time, due to consolidation. The project focuses on finite element solvers, verification, and streamlit integration of models.
 
@@ -69,6 +69,7 @@ The repository currently includes:
 - FEniCSx Project Documentation: https://docs.fenicsproject.org/
 
 - Larson, M. G., & Bengzon, F. (2013). The Finite Element Method: Theory, Implementation, and Applications. Springer.  
+
 
 
 

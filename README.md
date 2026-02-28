@@ -25,9 +25,9 @@ The repository currently includes:
    
 - `scripts/terzaghi_2d/` – 2D FEM consolidation *(under development)*  
 
-### Demos
+## Demos
 
-#### 1D Model 
+### 1D Model 
 
 - 1D Consolidation Demo: Time-dependent excess pore pressure dissipation and resulting settlement evolution (single- and multi-layer).
   
@@ -44,7 +44,7 @@ The repository currently includes:
 </p>
 
 
-#### 2D Model 
+### 2D Model 
 
 - 2D Consolidation Demo: Mesh-based pore pressure dissipation and surface settlement response under strip loading (single- or multi-layer, in progress).
   
@@ -69,6 +69,7 @@ The repository currently includes:
 - FEniCSx Project Documentation: https://docs.fenicsproject.org/
 
 - Larson, M. G., & Bengzon, F. (2013). The Finite Element Method: Theory, Implementation, and Applications. Springer.  
+
 
 
 

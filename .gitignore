@@ -6,4 +6,4 @@ notes/
 **/__pycache__/
 
 
-.gitignore
+.DS_Store

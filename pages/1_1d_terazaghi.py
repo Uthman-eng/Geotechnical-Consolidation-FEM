@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 
-from scripts.terazaghi_1d.fea_fenicsx import Get_Terazaghi1D_FEA 
+from src.geotech_consolidation.models.terazaghi_1d.fem import Get_Terazaghi1D_FEA
 
 
 # this has been put here as it will only use this for this here else where this isnt helpful

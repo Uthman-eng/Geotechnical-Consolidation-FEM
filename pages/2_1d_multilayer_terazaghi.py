@@ -4,7 +4,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 
-from scripts.terazaghi_1d_multilayer.mfea_fenics import Get_Terazaghi1dMultilayer_FEA
+from src.geotech_consolidation.models.terazaghi_multilayer.fem import Get_Terazaghi1dMultilayer_FEA
 
 # setting up Page config for streamlit 
 st.set_page_config(layout ="wide")

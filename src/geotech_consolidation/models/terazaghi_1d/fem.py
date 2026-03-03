@@ -1,22 +1,16 @@
-from pathlib import Path
 from mpi4py import MPI
-from petsc4py.PETSc import ScalarType 
 
-import pyvista as pv
 import numpy as np
 from petsc4py import PETSc
-import matplotlib as mpl
 
 
 import ufl
-from dolfinx import fem, io, mesh, plot
+from dolfinx import fem, mesh
 from dolfinx.fem import petsc
-from dolfinx.fem.petsc import LinearProblem
 
 from dolfinx.fem.petsc import (
     assemble_vector,
     assemble_matrix,
-    create_vector,
     apply_lifting,
     set_bc)
 
@@ -101,9 +95,6 @@ def Get_Terazaghi1D_FEA(H:float, num:int, load:float, Tx:float, time_steps:int, 
 
     u_hist = np.zeros((time_steps, uh.x.array.size), dtype=float)
     u_hist[0, :] = uh.x.array.copy()   # initial state
-    x = V.mesh.geometry.x[:, 0].copy()
-
-
     for i in range(time_steps -1):
         with b.localForm() as loc_b:
             loc_b.set(0.0)
@@ -136,4 +127,3 @@ def Get_Terazaghi1D_FEA(H:float, num:int, load:float, Tx:float, time_steps:int, 
 
 
     return local_dcons, u_hist
-

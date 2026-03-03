@@ -6,19 +6,22 @@ The repository currently includes:
 - **Terzaghi 1D Consolidation (Single Layer)**: Analytical solution + verified FEM model + Streamlit page
 - **Terzaghi 1D Consolidation (Multi-Layer)**: FEM model with layered material properties *(working; verification in progress)* + Streamlit page
 - **Terzaghi 2D Consolidation (Single or Multi-Layer)**: 2D mesh-based FEM consolidation model *(under active development)*
-- **Biot Consolidation (Planned)**: Future fully coupled displacement and pore pressure consolidation model
 
 ## Repository Structure
 ```text
 Geotechnical-Consolidation-FEM-1/
 |-- app.py                         # Main Streamlit entry point
 |-- pages/                         # Streamlit pages for each consolidation model
-|-- scripts/                       # Numerical solvers and model code
-|   |-- terazaghi_1d/              # Analytical + FEM solver (single-layer)
-|   |-- terazaghi_1d_multilayer/   # FEM solver (multi-layer)
-|   `-- terazaghi_2d/              # 2D FEM consolidation (under development)
-|-- docs/                          # Notebooks and supporting derivations
-|-- static/                        # Demo figures and result images
+|-- src/                           # Numerical model package
+|   `-- geotech_consolidation/
+|       `-- models/
+|           |-- terazaghi_1d/      # Analytical + FEM solver (single-layer)
+|           |-- terazaghi_multilayer/ # FEM solver (multi-layer)
+|           `-- terazaghi_2d/      # 2D FEM consolidation draft and future script
+|-- notebooks/                     # Verification notebooks and model comparison work
+|-- tests/                         # Future small automated checks after verification work
+|-- assets/
+|   `-- images/                    # Demo figures and result images
 |-- .devcontainer/                 # Dev Container configuration
 `-- Dockerfile                     # Container setup for reproducible environment
 ```
@@ -28,20 +31,20 @@ Geotechnical-Consolidation-FEM-1/
 ### 1D Consolidation
 Example 1D excess pore pressure result:
 
-<img src="static/u_data_1D.png" width="450" alt="1D pore pressure response" />
+<img src="assets/images/u_data_1D.png" width="450" alt="1D pore pressure response" />
 
 Example 1D settlement result:
 
-<img src="static/Settlement_1D.png" width="450" alt="1D settlement response" />
+<img src="assets/images/Settlement_1D.png" width="450" alt="1D settlement response" />
 
 ### 2D Consolidation
 Example 2D excess pore pressure result:
 
-<img src="static/u0_2D.png" width="450" alt="2D pore pressure response" />
+<img src="assets/images/u0_2D.png" width="450" alt="2D pore pressure response" />
 
 Example 2D settlement result:
 
-<img src="static/Settlement_2D.png" width="450" alt="2D settlement response" />
+<img src="assets/images/Settlement_2D.png" width="450" alt="2D settlement response" />
 
 ## Environment Setup
 

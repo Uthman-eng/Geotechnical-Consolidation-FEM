@@ -26,26 +26,6 @@ Geotechnical-Consolidation-FEM-1/
 `-- Dockerfile                     # Container setup for reproducible environment
 ```
 
-## Demo
-
-### 1D Consolidation
-Example 1D excess pore pressure result:
-
-<img src="assets/images/u_data_1D.png" width="450" alt="1D pore pressure response" />
-
-Example 1D settlement result:
-
-<img src="assets/images/Settlement_1D.png" width="450" alt="1D settlement response" />
-
-### 2D Consolidation
-Example 2D excess pore pressure result:
-
-<img src="assets/images/u0_2D.png" width="450" alt="2D pore pressure response" />
-
-Example 2D settlement result:
-
-<img src="assets/images/Settlement_2D.png" width="450" alt="2D settlement response" />
-
 ## Environment Setup
 
 This project was set up using the Dev Container, since the FEM solvers depend on the FEniCSx / dolfinx stack.
@@ -70,6 +50,27 @@ This project was set up using the Dev Container, since the FEM solvers depend on
   `streamlit run app.py --server.address 0.0.0.0`
 - Then open Streamlit in your browser at:
   `http://localhost:8501`
+  
+## Demo
+
+### 1D Consolidation
+Example 1D excess pore pressure result:
+
+<img src="assets/images/u_data_1D.png" width="450" alt="1D pore pressure response" />
+
+Example 1D settlement result:
+
+<img src="assets/images/Settlement_1D.png" width="450" alt="1D settlement response" />
+
+### 2D Consolidation
+Example 2D excess pore pressure result:
+
+<img src="assets/images/u0_2D.png" width="450" alt="2D pore pressure response" />
+
+Example 2D settlement result:
+
+<img src="assets/images/Settlement_2D.png" width="450" alt="2D settlement response" />
+
 
 ## References
 

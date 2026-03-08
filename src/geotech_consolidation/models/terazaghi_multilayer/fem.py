@@ -1,13 +1,11 @@
 from pathlib import Path
 from mpi4py import MPI
 
-
 import numpy as np
 from petsc4py import PETSc
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-
 
 import ufl
 from dolfinx import fem, io, mesh, plot
@@ -26,7 +24,6 @@ def initial_condition1(x, load):
     u = np.full(x.shape[1], load, dtype=np.float64)  
     u[np.isclose(x[0], 0.0)] = 0.0                    
     return u
-
 
 def initial_condition2(x, load, base):
     z = np.maximum(x[0], 1e-12)                       
@@ -89,8 +86,6 @@ def Get_Kappa(msh, z, depths, Cv):
 
 
 def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_steps:int, Cv: list[float], Mv: list[float], Base:float, U0=True):
-
-
     # defining further paramters 
     dt = T / (time_steps - 1)
     H = max(depths)
@@ -213,21 +208,3 @@ def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_s
 
     return local_dcons, u_hist, settlement
 
-
-# Embankment properties
-""" Load = 100 # load (kPa)
-Base = 10 # embankment width (m)
- 
-num = 5
-
-name = ["Made ground", "Soft clay", "Firm clay"]
-depths = [1, 2, 4, 5]
-Cv = [2e-7,2e-7, 2e-7, 2e-7] # this is Cv 
-Mv = [5e-4, 10e-4, 5e-4, 5e-4]
-
-T = (60*60*24) * 365 # final time (days)
-time_steps = 10
-
-fem_cdata, fem_udata, settlement = Get_Terazaghi1dMultilayer_FEA(depths, num, Load, T, time_steps, Cv,Mv, Base = 10)
-
-print(fem_cdata, fem_udata, settlement ) """

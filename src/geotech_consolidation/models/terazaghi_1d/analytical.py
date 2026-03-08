@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 def terzaghi(H, Tx, time_step, nodes, Cv,n_terms):
     Z = np.linspace(0, H, nodes)                 

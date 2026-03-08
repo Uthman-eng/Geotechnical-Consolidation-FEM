@@ -10,20 +10,20 @@ The repository currently includes:
 ## Repository Structure
 ```text
 Geotechnical-Consolidation-FEM-1/
-|-- app.py                         # Main Streamlit entry point
-|-- pages/                         # Streamlit pages for each consolidation model
-|-- src/                           # Numerical model package
+|-- app.py                            # Main Streamlit entry point
+|-- pages/                            # Streamlit pages for each consolidation model
+|-- src/                              # Numerical model package
 |   `-- geotech_consolidation/
 |       `-- models/
-|           |-- terazaghi_1d/      # Analytical + FEM solver (single-layer)
+|           |-- terazaghi_1d/         # Analytical + FEM solver (single-layer)
 |           |-- terazaghi_multilayer/ # FEM solver (multi-layer)
-|           `-- terazaghi_2d/      # 2D FEM consolidation draft and future script
-|-- notebooks/                     # Verification notebooks and model comparison work
-|-- tests/                         # Future small automated checks after verification work
+|           `-- terazaghi_2d/         # 2D FEM consolidation draft and future script
+|-- notebooks/                        # Verification notebooks and model comparison work
+|-- tests/                            # Future small automated checks after verification work
 |-- assets/
-|   `-- images/                    # Demo figures and result images
-|-- .devcontainer/                 # Dev Container configuration
-`-- Dockerfile                     # Container setup for reproducible environment
+|   `-- images/                       # Demo figures and result images
+|-- .devcontainer/                    # Dev Container configuration
+`-- Dockerfile                        # Container setup for reproducible environment
 ```
 
 ## Demo

@@ -1,21 +1,14 @@
-from pathlib import Path
 from mpi4py import MPI
 
 import numpy as np
 from petsc4py import PETSc
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 
 import ufl
-from dolfinx import fem, io, mesh, plot
+from dolfinx import fem, mesh
 from dolfinx.fem import petsc
-from dolfinx.fem.petsc import LinearProblem
-from dolfinx.mesh import meshtags
 from dolfinx.fem.petsc import (
     assemble_vector,
     assemble_matrix,
-    create_vector,
     apply_lifting,
     set_bc)
 
@@ -35,7 +28,26 @@ def initial_condition2(x, load, base):
     return u
 
 
-def Get_Kappa(msh, z, depths, Cv):
+def _normalise_depth_interfaces(depths, H):
+    depths = np.asarray(depths, dtype=np.float64)
+    if depths.ndim != 1 or depths.size == 0:
+        raise ValueError("depths must be a non-empty 1D sequence.")
+
+    if np.isclose(depths[0], 0.0):
+        interfaces = depths.copy()
+    else:
+        interfaces = np.concatenate(([0.0], depths))
+
+    if not np.isclose(interfaces[-1], H):
+        interfaces = np.concatenate((interfaces, [H]))
+
+    if np.any(np.diff(interfaces) < 0):
+        raise ValueError("depths must be monotonically increasing.")
+
+    return interfaces
+
+
+def Get_Kappa(msh, z, interfaces, Cv):
 # defining dimensions and connectivity  
     tdim = msh.topology.dim
     msh.topology.create_connectivity(tdim, 0)
@@ -48,13 +60,12 @@ def Get_Kappa(msh, z, depths, Cv):
     midpoints = 0.5 * (x[cell_verts[:, 0]] + x[cell_verts[:, 1]]) # cell_verts the 0 or 1 talks about the left and right respectively
 
     cell_markers = np.zeros(num_cells_local, dtype=np.int32)
-    z_interface = [0.0] + depths # adding first zero interface 
 
     DG0 = fem.functionspace(msh, ("DG", 0))
 
     for i in range(len(Cv)):
-        z0 = z_interface[i]
-        z1 = z_interface[i+1]
+        z0 = interfaces[i]
+        z1 = interfaces[i + 1]
         mask = (midpoints >= z0) & (midpoints < z1)  # returning on true bo0lean
         cell_markers[mask] = i + 1
 
@@ -90,6 +101,10 @@ def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_s
     dt = T / (time_steps - 1)
     H = max(depths)
     z = np.linspace(0, H, num + 1, dtype= np.float64) 
+    interfaces = _normalise_depth_interfaces(depths, H)
+
+    if len(interfaces) != len(Cv) + 1 or len(Cv) != len(Mv):
+        raise ValueError("depths, Cv, and Mv must define the same number of layers.")
 
 
     # def mesh     
@@ -105,7 +120,7 @@ def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_s
     else:
         initial_condition = lambda x : initial_condition2(x, Load, Base)
 
-    kappa = Get_Kappa(msh, z, depths, Cv)
+    kappa = Get_Kappa(msh, z, interfaces, Cv)
 
     V = fem.functionspace(msh, ("Lagrange", 1))
 
@@ -123,26 +138,6 @@ def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_s
 
     dofs = fem.locate_dofs_topological(V, fdim, boundary_facets)
     bc = fem.dirichletbc(PETSc.ScalarType(0), dofs, V)
-
-
-    V = fem.functionspace(msh, ("Lagrange", 1))
-
-    # Solution functions
-    u_n = fem.Function(V)
-
-
-    # Initial condition
-    u_n.interpolate(initial_condition)
-
-    fdim = msh.topology.dim - 1
-    boundary_facets = mesh.locate_entities_boundary(
-        msh, fdim,
-        marker=lambda x: np.isclose(x[0], 0.0)
-    )
-
-    dofs = fem.locate_dofs_topological(V, fdim, boundary_facets)
-    bc = fem.dirichletbc(PETSc.ScalarType(0), dofs, V)
-
     uh = fem.Function(V)
     uh.name = "uh"
     uh.interpolate(initial_condition)
@@ -165,12 +160,8 @@ def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_s
     solver.setOperators(A)
     solver.setType(PETSc.KSP.Type.PREONLY)
     solver.getPC().setType(PETSc.PC.Type.LU)
-
-
     u_hist = np.zeros((time_steps, uh.x.array.size), dtype=float)
     u_hist[0, :] = uh.x.array.copy()   # initial state
-    x = V.mesh.geometry.x[:, 0].copy()
-
 
     for i in range(time_steps - 1):
         with b.localForm() as loc_b:
@@ -194,17 +185,24 @@ def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_s
     # xdmf.close()
     A.destroy()
     b.destroy()
-    solver.destroy
+    solver.destroy()
 
     u0 = u_hist[0, :]                 # initial condition in space
-    local_dcons = 1 - u_hist / u0[None,:]
-    local_dcons[:,0] = int(1)
+    local_dcons = np.ones_like(u_hist)
+    np.divide(
+        u_hist,
+        u0[None, :],
+        out=local_dcons,
+        where=~np.isclose(u0[None, :], 0.0),
+    )
+    local_dcons = 1 - local_dcons
+    local_dcons[:, 0] = 1.0
 
 
     # getting settlement
-    gfg = np.digitize(z,depths, right=True)
-    Mv = np.asarray(Mv)[gfg]
-    settlement = u0 * Mv * (H / num)
+    gfg = np.digitize(z, interfaces[1:], right=True)
+    gfg = np.clip(gfg, 0, len(Mv) - 1)
+    Mv_profile = np.asarray(Mv, dtype=np.float64)[gfg]
+    settlement = u0 * Mv_profile * (H / num)
 
     return local_dcons, u_hist, settlement
-

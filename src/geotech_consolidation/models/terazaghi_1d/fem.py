@@ -32,14 +32,16 @@ def initial_condition2(x, load, base):
 
 
 
-def Get_Terazaghi1D_FEA(H:float, num:int, load:float, Tx:float, time_steps:int, Cv:float, base:float, U0=True):
-    dt = Tx / (time_steps -1)
+def Get_Terazaghi1D_FEA(H:float, num:int, load:float, Tx:float, time_steps:int, Cv:float, base:float, Mv:float, U0=True):
+    dt = Tx / (time_steps - 1)
+    H_abs = abs(H)
+    z = np.linspace(0, H_abs, num + 1, dtype=np.float64)
 
         # interval mesh | MUST keep in positional arguemnts i.e. "comm", "nx"
     msh = mesh.create_interval(
         comm=MPI.COMM_WORLD,
         nx=num,
-        points=[0.0, abs(H)],
+        points=[0.0, H_abs],
     )
 
     # Initial condition callback for fem.Function.interpolate
@@ -120,10 +122,21 @@ def Get_Terazaghi1D_FEA(H:float, num:int, load:float, Tx:float, time_steps:int, 
     solver.destroy()
 
     u0 = u_hist[0, :]                 # initial condition in space
-    local_dcons = 1 - u_hist / u0[None,:]
-    local_dcons[:,0] = int(1)        # top drained node
+    local_dcons = np.ones_like(u_hist)
+    np.divide(
+        u_hist,
+        u0[None, :],
+        out=local_dcons,
+        where=~np.isclose(u0[None, :], 0.0),
+    )
+    local_dcons = 1 - local_dcons
+    local_dcons[:, 0] = 1.0        # top drained node
 
+    depths = [H_abs]
+    gfg = np.digitize(z, depths, right=True)
+    Mv_vals = np.asarray([Mv])
+    gfg = np.clip(gfg, 0, len(Mv_vals) - 1)
+    Mv_layered = Mv_vals[gfg]
+    settlement = u0 * Mv_layered * (H_abs / num)
 
-
-
-    return local_dcons, u_hist
+    return local_dcons, u_hist, settlement

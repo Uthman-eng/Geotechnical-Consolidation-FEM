@@ -1,41 +1,9 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
 import seaborn as sns
 
 from src.geotech_consolidation.models.terazaghi_1d.fem import Get_Terazaghi1D_FEA
-
-
-# this has been put here as it will only use this for this here else where this isnt helpful
-def get_settlement(Mv:float, spacing:float, initial_stress:float, Load:float):
-    settlement = 0
-    for i in initial_stress:
-        if i > Load:
-            pass # we are not looking at these types of laods
-        elif i<= Load:
-            settlement_i = Mv * spacing * i
-            settlement += settlement_i 
-        else:
-            break
-    return settlement
-
-def initial_condition(x):
-    u = np.full(x.shape[1], load, dtype=np.float64)   # shape (npts,)
-    u[np.isclose(x[0], 0.0)] = 0.0                    # enforce u=0 at z=0
-    return u  
-
-def Boussinesq_condition(x, load, base):
-    z = np.maximum(x, 1e-12)                       # shape (npts,)
-    u = (2.0 * load / np.pi) * (
-        np.arctan(base / (2.0 * z)) +
-        (base * z) / (2.0 * z**2 + 0.5 * base**2)
-    )
-    u[np.isclose(z, 0.0)] = 0.0                       # optional safety at top
-    return u
-
-
-
 
 
 # setting up Page config for streamlit 
@@ -58,7 +26,6 @@ col1, col2 = st.columns([3.5,1])
 with col2: 
     H = st.number_input("depth (m)", value=5.0)  # in meters
     num = st.number_input("number of elements", value=100)
-    nodes = num + 1
     P = st.number_input("Load applied (kPa)", value=100.0) 
     Tx = st.number_input("Final time (days)", value= 365.0)
     Tx = Tx*60*60*24
@@ -70,68 +37,51 @@ with col2:
     initial_conditions = st.toggle("Use uniform initial condition (U0)", value=False) 
     base = st.number_input("base of load placed (m)", value =2.5)
 
-
-
-
-
-
-# loading in function and formatting
-uniform_total_settlement = Mv*P*H
-
-# Solving for fem and getting data pre proccesed 
-fem_cdata, fem_udata = Get_Terazaghi1D_FEA(H, num, P, Tx, time_step, Cv, base, initial_conditions)
-Z = -np.linspace(0, H, num = nodes)
-time = np.linspace(0,(Tx/(60*60*24)), num= time_step)
-fem_cdata = pd.DataFrame(fem_cdata, columns = Z, index = time)
-
-
-
-
-
-
-
-# this can be cleaned up alot by adding in settlement calculation within the fenicsx fem solver
-if initial_conditions == True:
-    fem_settlement = fem_cdata.mean(axis=1)*uniform_total_settlement
-else:
-    spacing = H/num
-    initial_conditions = Boussinesq_condition(-Z, P, base)
-    total_settlement = get_settlement(Mv,spacing, initial_conditions, P)
-    fem_settlement = fem_cdata.mean(axis=1)*total_settlement
-
-
-# adding again incase this has been mised from the above conditions
-spacing = H/num
-
-boussinesq_initial_conditions = Boussinesq_condition(-Z, P, base)
-Boussinesq_settlement = get_settlement(Mv,spacing, boussinesq_initial_conditions, P)
-
-
-uniform_initial_conditions = np.ones((nodes,1))*P
+nodes = num + 1
+Z = -np.linspace(0, H, num=nodes)
 
 with col1:
-    if st.button("Solve"): 
+    if st.button("Solve"):
+        fem_cdata, fem_udata_raw, settlement = Get_Terazaghi1D_FEA(
+            H,
+            num,
+            P,
+            Tx,
+            time_step,
+            Cv,
+            base,
+            Mv,
+            initial_conditions,
+        )
+        fem_udata = fem_udata_raw.T
+        initial_pressure = fem_udata[:, 0]
+        time_days = Tx / (60 * 60 * 24)
+        time = np.linspace(0, time_days, num=time_step)
+        fem_settlement = np.sum(settlement[:, None] * fem_cdata.T, axis=0)
+        total_settlement = np.sum(settlement)
 
-        # plotting initial conditions 
-        st.subheader("Initials Conditions for (Boussinesq & Uniform conditions)")
-        st.write("Initial excess pore pressure profile at *t* = 0 for uniform and" \
-        " Boussinesq loading, as a function of depth.")
-
-        fig_ini, ax_ini = plt.subplots(figsize = (8,5))
-        ax_ini.plot(boussinesq_initial_conditions, Z , label="Boussinesq initial conditions")
-        ax_ini.plot(uniform_initial_conditions, Z, label = "Uniform initial conditions")
+        # plotting initial condition
+        st.subheader("Initial Condition (FEM)")
+        st.write(
+            "Initial excess pore pressure profile at *t* = 0 computed by the FEM solver "
+            "for the selected load and initial condition."
+        )
+        fig_ini, ax_ini = plt.subplots(figsize=(8, 5))
+        ax_ini.plot(initial_pressure, Z, label="FEM initial condition")
         ax_ini.set_xlabel("Depths (z)")
         ax_ini.set_ylabel("Initial excess pore pressure, (u0 kPa)")
         ax_ini.legend()
-        plt.title("Initial Conditions (U0) over depth (z)" )
+        plt.title("Initial Conditions (U0) over depth (z)")
         st.pyplot(fig_ini)
 
-        # plotting end settlement 
+        # plotting end settlement
         st.subheader("Settlement response (FEM)")
-        st.write("Settlement is computed from the FEM pore pressure and plotted" \
-        " over the selected time for given initial condition.")
-        fig_settl, ax = plt.subplots(figsize = (8,5))
-        ax.set_ylim(-np.max(uniform_total_settlement),0)
+        st.write(
+            "Settlement is computed from the FEM pore pressure and plotted"
+            " over the selected time for the chosen initial condition."
+        )
+        fig_settl, ax = plt.subplots(figsize=(8, 5))
+        ax.set_ylim(-total_settlement, 0)
         ax.plot(time, -fem_settlement, label="FEM Settlement")
         ax.set_xlabel("Time (days)")
         ax.set_ylabel("Settlement in m")
@@ -139,27 +89,32 @@ with col1:
         ax.set_title("settlement over time")
         st.pyplot(fig_settl)
 
-        st.write(f"Total settlement **(uniform)** : {uniform_total_settlement:.4f} m")
-        st.write(f"Total settlement **(Boussinenesq)**: {Boussinesq_settlement:.4f} m")
-
+        st.write(f"Total consolidation settlement: {total_settlement:.4f} m")
+        st.write(f"Settlement after {time_days:.1f} days: {fem_settlement[-1]:.4f} m")
 
         # plotting local degree of consolidation heat map
         st.subheader("Excess Pore pressure dissipation (depth time map)")
         st.write("Heatmap of Pore pressure dissipation through time and depth")
-        fig_cons, ax_cons = plt.subplots(figsize = (8,5))
-        kx = max(1, len(time)//10)    # ~8 labels across, auto
-        ky = max(1, len(Z)//10)  # ~10 labels down, auto 
-        ax_cons = sns.heatmap(fem_udata.T,
-                            annot=False,
-                            cmap="Blues", 
-                            xticklabels=time,
-                            yticklabels=Z)
+        fig_cons, ax_cons = plt.subplots(figsize=(8, 5))
+        kx = max(1, len(time) // 10)    # ~8 labels across, auto
+        ky = max(1, len(Z) // 10)  # ~10 labels down, auto 
+        ax_cons = sns.heatmap(
+            fem_udata,
+            annot=False,
+            cmap="Blues",
+            xticklabels=time,
+            yticklabels=Z,
+        )
         ax_cons.set_xticks(np.arange(0, len(time), kx) + 0.5)
-        ax_cons.set_xticklabels([f"{time[i]:.1f}" for i in range(0, len(time), kx)],
-                   rotation=0)
+        ax_cons.set_xticklabels(
+            [f"{time[i]:.1f}" for i in range(0, len(time), kx)],
+            rotation=0,
+        )
         ax_cons.set_yticks(np.arange(0, len(Z), ky) + 0.5)
-        ax_cons.set_yticklabels([f"{Z[i]:.1f}" for i in range(0, len(Z), ky)],
-                   rotation=0)      
+        ax_cons.set_yticklabels(
+            [f"{Z[i]:.1f}" for i in range(0, len(Z), ky)],
+            rotation=0,
+        )
         ax_cons.set_xlabel("Time (Days)")
         ax_cons.set_ylabel("Depth (m)")
         ax_cons.set_title("Excess Pore Pressure dissipation over time in a 1D Mesh")

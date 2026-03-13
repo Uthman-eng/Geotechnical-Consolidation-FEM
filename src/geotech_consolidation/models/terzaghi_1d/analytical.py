@@ -19,7 +19,7 @@ def terzaghi(H, Tx, time_step, nodes, Cv,n_terms):
     return Cdata, Z, T
 
 
-def Get_Terazaghi1d_Analytical(H, num, P, Tx, time_step, Cv, n_terms):
+def Get_terzaghi1d_Analytical(H, num, P, Tx, time_step, Cv, n_terms):
     nodes = num + 1
     data, Z, T  = terzaghi(H, Tx, time_step, nodes, Cv,n_terms)
     cdata = 1 - data

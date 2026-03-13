@@ -30,7 +30,7 @@ def terzaghi(u0, H, Tx, time_step, nodes, Cv, n_terms):
     return p_data, Z, T
 
 
-def Get_Terazaghi1d_Analytical_u0(u0, H, num, Tx, time_step, Cv, n_terms):
+def Get_terzaghi1d_Analytical_u0(u0, H, num, Tx, time_step, Cv, n_terms):
     nodes = num + 1
     p_data, Z, T = terzaghi(u0, H, Tx, time_step, nodes, Cv, n_terms)
     # p_data[0, :] = np.array(u0, dtype=float)   # first time step

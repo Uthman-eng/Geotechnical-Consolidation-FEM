@@ -1,13 +1,9 @@
 from mpi4py import MPI
-
 import numpy as np
 from petsc4py import PETSc
-
-
 import ufl
 from dolfinx import fem, mesh
 from dolfinx.fem import petsc
-
 from dolfinx.fem.petsc import (
     assemble_vector,
     assemble_matrix,
@@ -15,13 +11,13 @@ from dolfinx.fem.petsc import (
     set_bc)
 
 
-def initial_condition1(x, load):
-    u = np.full(x.shape[1], load, dtype=np.float64)  
-    u[np.isclose(x[0], 0.0)] = 0.0                    
+def uniform_condition(depth_array, load):
+    u = np.full(depth_array.shape[1], load, dtype=np.float64)  
+    u[np.isclose(depth_array[0], 0.0)] = 0.0                    
     return u
 
-def initial_condition2(x, load, base):
-    z = np.maximum(x[0], 1e-12)                       
+def boussinesq_condition(depth_array, load, base): 
+    z = np.maximum(depth_array[0], 1e-12)                       
     u = (2.0 * load / np.pi) * (
         np.arctan(base / (2.0 * z)) +
         (base * z) / (2.0 * z**2 + 0.5 * base**2)
@@ -29,37 +25,35 @@ def initial_condition2(x, load, base):
     u[np.isclose(z, 0.0)] = 0.0                       
     return u
 
-
-
-
-def Get_Terazaghi1D_FEA(H:float, num:int, load:float, Tx:float, time_steps:int, Cv:float, base:float, Mv:float, U0=True):
-    dt = Tx / (time_steps - 1)
-    H_abs = abs(H)
-    z = np.linspace(0, H_abs, num + 1, dtype=np.float64)
+def Get_terzaghi1D_FEA(depth:float, cell_num:int, load:float, final_time:float, time_steps:int, Cv:float, base:float, Mv:float, u0_condition=True): # u0_condition == True if Uniform and False if Bousinesq
+    
+    dt = final_time / (time_steps - 1) # time_steps - 1 (since the first instance calculate at t=0 is calculated seperately)
+    
+    abs_depth = abs(depth)
+    
+    z = np.linspace(0, abs_depth, cell_num + 1, dtype=np.float64)
 
         # interval mesh | MUST keep in positional arguemnts i.e. "comm", "nx"
     msh = mesh.create_interval(
         comm=MPI.COMM_WORLD,
-        nx=num,
-        points=[0.0, H_abs],
+        nx=cell_num,
+        points=[0.0, abs_depth],
     )
 
     # Initial condition callback for fem.Function.interpolate
-    if U0:
-        initial_condition = lambda x : initial_condition1(x, load)
+    if u0_condition:
+        initial_condition = lambda x : uniform_condition(x, load)
     else:
-        initial_condition = lambda x : initial_condition2(x, load, base)
+        initial_condition = lambda x : boussinesq_condition(x, load, base)
 
 
     V = fem.functionspace(msh, ("Lagrange", 1))
-
     # Solution functions
     u_n = fem.Function(V)
     u_n.name = "u_n"
     # Initial condition
     u_n.interpolate(initial_condition) 
     # boundary creation
-
 
     fdim = msh.topology.dim - 1
     boundary_facets = mesh.locate_entities_boundary(
@@ -122,21 +116,14 @@ def Get_Terazaghi1D_FEA(H:float, num:int, load:float, Tx:float, time_steps:int, 
     solver.destroy()
 
     u0 = u_hist[0, :]                 # initial condition in space
-    local_dcons = np.ones_like(u_hist)
-    np.divide(
-        u_hist,
-        u0[None, :],
-        out=local_dcons,
-        where=~np.isclose(u0[None, :], 0.0),
-    )
-    local_dcons = 1 - local_dcons
-    local_dcons[:, 0] = 1.0        # top drained node
+    depths = [abs_depth]
+    layer_ids = np.digitize(z, depths, right=True)
+    Mv_vals = np.asarray([Mv], dtype=np.float64)
+    layer_ids = np.clip(layer_ids, 0, len(Mv_vals) - 1)
+    
+    Mv_profile = Mv_vals[layer_ids]
+    strain_hist = Mv_profile[None, :] * (u0[None, :] - u_hist)
+    settlement_history = np.sum(strain_hist * (abs_depth / cell_num), axis=1)
+    settlement = u0 * Mv_profile * (abs_depth / cell_num)
 
-    depths = [H_abs]
-    gfg = np.digitize(z, depths, right=True)
-    Mv_vals = np.asarray([Mv])
-    gfg = np.clip(gfg, 0, len(Mv_vals) - 1)
-    Mv_layered = Mv_vals[gfg]
-    settlement = u0 * Mv_layered * (H_abs / num)
-
-    return local_dcons, u_hist, settlement
+    return settlement_history, u_hist, settlement

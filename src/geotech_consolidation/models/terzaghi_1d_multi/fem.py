@@ -96,7 +96,7 @@ def Get_Kappa(msh, z, interfaces, Cv):
 
 
 
-def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_steps:int, Cv: list[float], Mv: list[float], Base:float, U0=True):
+def Get_terzaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_steps:int, Cv: list[float], Mv: list[float], Base:float, U0=True):
     # defining further paramters 
     dt = T / (time_steps - 1)
     H = max(depths)
@@ -188,21 +188,13 @@ def Get_Terazaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_s
     solver.destroy()
 
     u0 = u_hist[0, :]                 # initial condition in space
-    local_dcons = np.ones_like(u_hist)
-    np.divide(
-        u_hist,
-        u0[None, :],
-        out=local_dcons,
-        where=~np.isclose(u0[None, :], 0.0),
-    )
-    local_dcons = 1 - local_dcons
-    local_dcons[:, 0] = 1.0
-
 
     # getting settlement
-    gfg = np.digitize(z, interfaces[1:], right=True)
-    gfg = np.clip(gfg, 0, len(Mv) - 1)
-    Mv_profile = np.asarray(Mv, dtype=np.float64)[gfg]
+    layer_ids = np.digitize(z, interfaces[1:], right=True)
+    layer_ids = np.clip(layer_ids, 0, len(Mv) - 1) # added incase 
+    Mv_profile = np.asarray(Mv, dtype=np.float64)[layer_ids]
+    strain_hist = Mv_profile[None, :] * (u0[None, :] - u_hist)
+    settlement_history = np.sum(strain_hist * (H / num), axis=1)
     settlement = u0 * Mv_profile * (H / num)
 
-    return local_dcons, u_hist, settlement
+    return settlement_history, u_hist, settlement

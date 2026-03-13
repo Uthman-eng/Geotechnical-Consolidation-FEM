@@ -1,14 +1,13 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd
 import numpy as np
 
-from src.geotech_consolidation.models.terazaghi_multilayer.fem import Get_Terazaghi1dMultilayer_FEA
+from src.geotech_consolidation.models.terzaghi_1d_multi.fem import Get_terzaghi1dMultilayer_FEA
 
 # setting up Page config for streamlit 
 st.set_page_config(layout ="wide")
-st.title("1D Terazaghi Consolidation Settlement - Multi Layer")
+st.title("1D terzaghi Consolidation Settlement - Multi Layer")
 
 st.write(
     "This dashboard solves 1D Terzaghi consolidation for a **multi-layer soil profile** using the finite element method (FEM). "
@@ -50,11 +49,9 @@ with col2:
 with col1:
     if st.button("Solve"): 
         # kept this inside the button so it doesnt try to keep rerunning
-        fem_cdata, fem_udata, settlement = Get_Terazaghi1dMultilayer_FEA(depths, num, Load, Tx, time_step, Cv ,Mv, base, U0=initial_conditions)
+        settlement_history, fem_udata, settlement = Get_terzaghi1dMultilayer_FEA(depths, num, Load, Tx, time_step, Cv ,Mv, base, U0=initial_conditions)
         Z = -np.linspace(0, H, num + 1 )
         time = np.linspace(0,(Tx/(60*60*24)), num = time_step)
-
-        fem_setdata = np.sum((settlement[:,None] * fem_cdata.T), axis = 0)
 
         
         # plotting initial conditions 
@@ -76,10 +73,10 @@ with col1:
         " over the selected time for given initial condition.")
 
         st.write(f"Total Consolidation Settlement:  {np.sum(settlement, axis =0):.4f}m")
-        st.write(f"Total ConsolidationSettlement after {Tx/(60*60*24)} days:    {np.max(fem_setdata):.4f}m")
+        st.write(f"Total ConsolidationSettlement after {Tx/(60*60*24)} days:    {settlement_history[-1]:.4f}m")
         fig_settl, ax = plt.subplots(figsize = (8,5))
         ax.set_ylim(-np.max(np.sum(settlement, axis = 0)),0)
-        ax.plot(time, -fem_setdata, label="FEM Settlement")
+        ax.plot(time, -settlement_history, label="FEM Settlement")
         ax.set_xlabel("Time (days)")
         ax.set_ylabel("Settlement in m")
         ax.legend()

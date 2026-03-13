@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from src.geotech_consolidation.models.terazaghi_1d.fem import Get_Terazaghi1D_FEA
+from src.geotech_consolidation.models.terzaghi_1d.fem import Get_terzaghi1D_FEA
 
 
 # setting up Page config for streamlit 
 st.set_page_config(layout ="wide")
-st.title("1D Terazaghi Consolidation Theory")
+st.title("1D terzaghi Consolidation Theory")
 
 
 # pre text within 
@@ -40,9 +40,10 @@ with col2:
 nodes = num + 1
 Z = -np.linspace(0, H, num=nodes)
 
+
 with col1:
     if st.button("Solve"):
-        fem_cdata, fem_udata_raw, settlement = Get_Terazaghi1D_FEA(
+        settlement_history, fem_udata_raw, settlement = Get_terzaghi1D_FEA(
             H,
             num,
             P,
@@ -53,11 +54,11 @@ with col1:
             Mv,
             initial_conditions,
         )
+            
         fem_udata = fem_udata_raw.T
         initial_pressure = fem_udata[:, 0]
         time_days = Tx / (60 * 60 * 24)
         time = np.linspace(0, time_days, num=time_step)
-        fem_settlement = np.sum(settlement[:, None] * fem_cdata.T, axis=0)
         total_settlement = np.sum(settlement)
 
         # plotting initial condition
@@ -82,7 +83,7 @@ with col1:
         )
         fig_settl, ax = plt.subplots(figsize=(8, 5))
         ax.set_ylim(-total_settlement, 0)
-        ax.plot(time, -fem_settlement, label="FEM Settlement")
+        ax.plot(time, -settlement_history, label="FEM Settlement")
         ax.set_xlabel("Time (days)")
         ax.set_ylabel("Settlement in m")
         ax.legend()
@@ -90,9 +91,9 @@ with col1:
         st.pyplot(fig_settl)
 
         st.write(f"Total consolidation settlement: {total_settlement:.4f} m")
-        st.write(f"Settlement after {time_days:.1f} days: {fem_settlement[-1]:.4f} m")
+        st.write(f"Settlement after {time_days:.1f} days: {settlement_history[-1]:.4f} m")
 
-        # plotting local degree of consolidation heat map
+        # plotting excess pore pressure heat map
         st.subheader("Excess Pore pressure dissipation (depth time map)")
         st.write("Heatmap of Pore pressure dissipation through time and depth")
         fig_cons, ax_cons = plt.subplots(figsize=(8, 5))

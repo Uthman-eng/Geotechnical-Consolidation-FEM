@@ -63,3 +63,25 @@ def test_multilayer_model_runs():
     assert np.all(np.isfinite(settlement_history))
     assert np.all(np.isfinite(settlement))
 
+    settlement_history, u_hist, settlement = Get_terzaghi1dMultilayer_FEA(
+        depths,
+        num_elements,
+        load,
+        final_time_days * SECONDS_PER_DAY,
+        num_time_steps,
+        Cv,
+        Mv,
+        max(depths) / 2.0,
+        False,
+    )
+
+    z = np.linspace(0.0, max(depths), num_elements + 1)
+    t = np.linspace(0.0, final_time_days, num_time_steps)
+
+    assert u_hist.shape[0] == t.shape[0]
+    assert u_hist.shape[1] == z.shape[0]
+    assert settlement_history.shape == t.shape
+    assert settlement.shape == z.shape
+    assert np.all(np.isfinite(settlement_history))
+    assert np.all(np.isfinite(settlement))
+

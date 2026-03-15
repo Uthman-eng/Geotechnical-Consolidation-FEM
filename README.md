@@ -1,19 +1,12 @@
 # Finite Element Methods for Geotechnical Consolidation
 
-This repository explores 1D and 2D consolidation modelling for saturated soils using FEniCSx and Streamlit. The current focus is Terzaghi-style consolidation, comparing analytical and FEM based pore pressure dissipation and settlement predictions.
-
-The project is still in active development. At the moment, the codebase is strongest in:
-
-- `terzaghi_1d`: single-layer 1D consolidation with analytical and FEM solvers
-- `terzaghi_1d_multi`: multilayer 1D FEM consolidation with listed layer dependent `Cv` and `Mv` arrays inputs
-- Streamlit pages for interactive exploration of the single layer and multilayer 1D models
-- notebooks for verification, comparison, and model-development work
+This repository explores 1D and 2D consolidation modelling for saturated soils using FEniCSx and Streamlit. The current focus is Terzaghi consolidation, comparing analytical and FEM pore pressure dissipation and settlement.The project is still under devolpment.
 
 ## Current Status
 
-- Single layer 1D verification is the most mature part of the repository.
-- Multilayer 1D solving is implemented, but the verification campaign is still the main next task.
-- 2D work is present only as early stage draft material.
+- Single layer 1D and its verification is the most mature part of the repository.
+- Multilayer 1D solving is implemented, and the verification still under devolpment.
+- 2D work is present only as draft.
 
 ## Theory Summary
 

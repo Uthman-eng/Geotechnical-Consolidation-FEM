@@ -40,15 +40,6 @@ def test_single_layer_model_runs():
     assert np.all(np.isfinite(settlement_history))
     assert np.all(np.isfinite(settlement))
 
-def test_single_layer_model_runs():
-    H = 10.0
-    Cv = 1e-3
-    Mv = 1e-4
-    load = 100.0
-    final_time_days = 10.0
-    num_elements = 21
-    num_time_steps = 11
-
     settlement_history, u_hist, settlement = Get_terzaghi1D_FEA(
         H,
         num_elements,

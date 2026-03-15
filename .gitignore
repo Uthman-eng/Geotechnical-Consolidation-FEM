@@ -6,4 +6,4 @@ venv/
 .streamlit/
 .DS_Store
 .claude/
-/.devcontainer
+.devcontainer/

@@ -10,7 +10,8 @@
         "ms-azuretools.vscode-containers",
         "ms-toolsai.datawrangler",
         "ms-azuretools.vscode-docker",
-        "ms-toolsai.jupyter-renderers"
+        "ms-toolsai.jupyter-renderers",
+        "anthropic.claude-code"
       ]
     }
   }

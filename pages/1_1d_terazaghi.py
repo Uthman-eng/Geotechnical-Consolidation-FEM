@@ -4,6 +4,7 @@ import numpy as np
 import seaborn as sns
 
 from src.geotech_consolidation.models.terzaghi_1d.fem import Get_terzaghi1D_FEA
+from src.plotting.terzaghi_1d.plot import Get_Settlement_Plot
 
 
 # setting up Page config for streamlit 
@@ -81,13 +82,8 @@ with col1:
             "Settlement is computed from the FEM pore pressure and plotted"
             " over the selected time for the chosen initial condition."
         )
-        fig_settl, ax = plt.subplots(figsize=(8, 5))
+        fig_settl, ax = Get_Settlement_Plot(settlement_history, time)
         ax.set_ylim(-total_settlement, 0)
-        ax.plot(time, -settlement_history, label="FEM Settlement")
-        ax.set_xlabel("Time (days)")
-        ax.set_ylabel("Settlement in m")
-        ax.legend()
-        ax.set_title("settlement over time")
         st.pyplot(fig_settl)
 
         st.write(f"Total consolidation settlement: {total_settlement:.4f} m")

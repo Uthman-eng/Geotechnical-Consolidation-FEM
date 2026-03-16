@@ -1,16 +1,16 @@
 # Finite Element Methods for Geotechnical Consolidation
 
-This repository explores 1D and 2D consolidation modelling for saturated soils using FEniCSx and Streamlit. The current focus is Terzaghi consolidation, comparing analytical and FEM pore pressure dissipation and settlement.The project is still under devolpment.
+This repository explores 1D and 2D consolidation modelling for saturated soils using via FEniCSx. The focus is on Terzaghi consolidation theory, comparing analytical and FEM pore-pressure dissipation and settlement. The project is still under development.
 
 ## Current Status
 
-- Single layer 1D and its verification is the most mature part of the repository.
-- Multilayer 1D solving is implemented, and the verification still under devolpment.
-- 2D work is present only as draft.
+- Single-layer 1D modelling and verification
+- Multilayer 1D solving is implemented, and multilayer verification is still under development
+- 2D work is present as an early draft
 
-## Theory Summary
+## Theory
 
-For 1D Terzaghi consolidation, the governing equation solved here is the diffusion-type excess pore pressure equation
+The governing equation solved here is a diffusion type excess pore pressure equation
 
 ```text
 du/dt = Cv d²u/dz²
@@ -23,27 +23,34 @@ where:
 - `z` is depth
 - `Cv` is the coefficient of consolidation
 
-For the 1D & 2D work, the top boundary is treated as drained, so the pore pressure at the drainage boundary is enforced as zero during the FEM solve.
+Where the top boundary is treated as drained, and is enforced to zero.
 
-Settlement is post processed from the pore pressure dissipation history using the compressibility parameter (`Mv`). The settlement is given by, the change in excess pore pressure to estimate strain and then integrates through depth to obtain settlement.
+Settlement is calculated from the the pore pressure dissipation history using the compressibility parameter `Mv`. 
+Settlement = ∫ Mv​(z) * Δσ′(z) * dz (integral over the domain)
 
-Modelling notes (interpretation and verification):
 
-1. The Boussinesq style initial pore pressure profile is regularised near the drained boundary to avoid singularity behaviour at `z = 0`. This is a deliberately done, so that the initial condition is a approximation the singularity on the surface.
-2. Settlement is evaluated using a discrete depth summation over the mesh spacing. This is a numerical quadrature choice. This should be compared against alternatives quadrature choices such as trapezoidal integration so that settlement trends are not confused with post processing error.
 
+Modelling notes for interpretation and verification:
+
+1. The Boussinesq initial pore pressure profile is zeroed near the drained boundary to avoid singular behaviour at `z = 0`, where the equaion collapse to a singularity.
+2. Settlement is currently evaluated using a discrete depth summation over the mesh spacing. This is a numerical quadrature choice. Comparison to alternatives quadrature choices, such as trapezoidal integration, so not to be confused with post processing error.
 ## Repository Structure
 
 ```text
-Geotechnical-Consolidation-FEM/
+Geotechnical-Consolidation-FEM-1/
 |-- app.py
 |-- pages/
 |   |-- 1_1d_terazaghi.py
 |   `-- 2_1d_multilayer_terazaghi.py
+|-- demo/
+|   |-- 1_terzaghi_1d.singlelayer.ipynb
+|   |-- 2_terzaghi_1d_multilayer.ipynb
+|   `-- 7_terzaghi_2d.ipynb
 |-- notebooks/
 |   |-- 1_terzaghi_1d_singlelayer.ipynb
 |   |-- 2_Analytical_Fourier_Series.ipynb
-|   `-- 3_terzaghi_1d_multilayer.ipynb
+|   |-- 3_terzaghi_1d_multilayer.ipynb
+|   |-- 4_terzaghi_2d.ipynb
 |-- src/
 |   |-- geotech_consolidation/
 |   |   `-- models/
@@ -54,11 +61,9 @@ Geotechnical-Consolidation-FEM/
 |       |-- terzaghi_1d/
 |       `-- terzaghi_2d/
 |-- tests/
-|   |-- README.md
 |   `-- unit/
 |-- assets/
 |   `-- images/
-|-- .devcontainer/
 |-- Dockerfile
 |-- requirements.txt
 `-- LICENSE
@@ -66,22 +71,9 @@ Geotechnical-Consolidation-FEM/
 
 ## Environment Setup
 
-The FEM solvers depend on the DOLFINx / PETSc / MPI stack. It is recommended to run this project inside a docker container. 
+The FEM solvers depend on the DOLFINx / PETSc / MPI stack. The recommended workflow is to run this project inside Docker.
 
-### Option 1 - VS Code Dev Container
-
-1. Open the repository in VS Code.
-2. Install the Dev Containers extension.
-3. Reopen the project in the container.
-4. The container uses the `dolfinx/dolfinx:stable` image.
-5. After creation, it installs the Python dependencies from [requirements.txt](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/requirements.txt).
-6. Run the app with:
-
-```bash
-streamlit run app.py
-```
-
-### Option 2 - Docker
+### Docker
 
 Build the image:
 
@@ -105,7 +97,7 @@ Open the app at [http://localhost:8501](http://localhost:8501).
 
 ## Running Checks
 
-The lightweight automated checks live in [tests/unit](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/tests/unit). They are currently still in devolpmement, so only contains smoke level checks (weak checks) and should be run inside the container environment where `dolfinx`, `mpi4py`, and `pytest` are available.
+Automated checks in [tests/unit](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/tests/unit).
 
 Typical command:
 
@@ -113,14 +105,18 @@ Typical command:
 python -m pytest -q
 ```
 
-# Notebook Based Verification
-Notebook Based Verification are the main place for more rigorous verfication and comparison of FEM Models. It includes, and is not limited to; analytical comparison, convergence studdies, interface comparison and interpretation of consolidation behaviour.
+## Verification and Demo Notebooks
+
+The Jupyter notebooks are the main place for verification, comparison, and demonstration of the FEM models.
+
+- Verification notebooks focus on analytical comparison, convergence studies, interface checks, and interpretation of consolidation behaviour.
+- Demo notebooks are lighter notebooks intended mainly for visualising pore pressure and settlement outputs.
 
 ## Demo Figures
 
 ### 1D Consolidation
 
-Example 1D excess pore pressure result:
+Example 1D excess pore-pressure result:
 
 <img src="assets/images/u_data_1D.png" width="450" alt="1D pore pressure response" />
 
@@ -130,14 +126,13 @@ Example 1D settlement result:
 
 ### 2D Consolidation
 
-Example 2D excess pore pressure result:
+Example 2D excess pore-pressure result:
 
 <img src="assets/images/u0_2D.png" width="450" alt="2D pore pressure response" />
 
 Example 2D settlement result:
 
 <img src="assets/images/Settlement_2D.png" width="450" alt="2D settlement response" />
-
 
 ## References
 

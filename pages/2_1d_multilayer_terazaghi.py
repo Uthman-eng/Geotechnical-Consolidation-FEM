@@ -4,6 +4,7 @@ import seaborn as sns
 import numpy as np
 
 from src.geotech_consolidation.models.terzaghi_1d_multi.fem import Get_terzaghi1dMultilayer_FEA
+from src.plotting.terzaghi_1d.plot import Get_Settlement_Plot
 
 # setting up Page config for streamlit 
 st.set_page_config(layout ="wide")
@@ -74,13 +75,8 @@ with col1:
 
         st.write(f"Total Consolidation Settlement:  {np.sum(settlement, axis =0):.4f}m")
         st.write(f"Total ConsolidationSettlement after {Tx/(60*60*24)} days:    {settlement_history[-1]:.4f}m")
-        fig_settl, ax = plt.subplots(figsize = (8,5))
+        fig_settl, ax = Get_Settlement_Plot(settlement_history, time)
         ax.set_ylim(-np.max(np.sum(settlement, axis = 0)),0)
-        ax.plot(time, -settlement_history, label="FEM Settlement")
-        ax.set_xlabel("Time (days)")
-        ax.set_ylabel("Settlement in m")
-        ax.legend()
-        ax.set_title("settlement over time")
         st.pyplot(fig_settl)
 
 

@@ -33,7 +33,7 @@ def Get_terzaghi1D_FEA(depth:float, cell_num:int, load:float, final_time:float, 
     
     z = np.linspace(0, abs_depth, cell_num + 1, dtype=np.float64)
 
-        # interval mesh | MUST keep in positional arguemnts i.e. "comm", "nx"
+    # interval mesh | MUST keep in positional arguemnts i.e. "comm", "nx"
     msh = mesh.create_interval(
         comm=MPI.COMM_WORLD,
         nx=cell_num,

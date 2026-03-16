@@ -23,66 +23,79 @@ def boussinesq_condition_2d(x, load, base):
     term2 = Z * ((X + B) / ((X + B)**2 + Z**2) - (X - B) / ((X - B)**2 + Z**2))
 
     u = (load / np.pi) * (term1 + term2)
-    u[np.isclose(x[1], 0.0)] = 0.0         # enforce drained BC at surface
+    u[np.isclose(x[1], 0.0)] = 0.0 
     return u
 
 
-def Get_terzaghi2D_FEA(
-    H: float,
-    W: float,
-    nx: int,
-    load: float,
-    final_time: float,
-    time_steps: int,
-    Cv: float,
-    Mv: float,
-    base: float,
-):
-    """
-    2D Terzaghi consolidation FEM solver (Boussinesq initial condition).
+def _normalise_depth_interfaces(depths, H):
+    depths = np.asarray(depths, dtype=np.float64)
+    if depths.ndim != 1 or depths.size == 0:
+        raise ValueError("depths must be a non-empty 1D sequence.")
 
-    Domain: rectangle [-W, W] x [-H, 0], where y = 0 is the drained top surface.
+    if np.isclose(depths[0], 0.0):
+        interfaces = depths.copy()
+    else:
+        interfaces = np.concatenate(([0.0], depths))
 
-    Parameters
-    ----------
-    H : float
-        Depth of the soil layer (m).
-    W : float
-        Half-width of the domain (m); full domain width = 2W.
-    nx : int
-        Number of elements in each direction (nx x nx triangular mesh).
-    load : float
-        Applied surface load (kPa).
-    final_time : float
-        Total simulation time (s).
-    time_steps : int
-        Number of time steps (including t = 0).
-    Cv : float
-        Coefficient of consolidation (m^2/s).
-    Mv : float
-        Coefficient of volume compressibility (1/kPa).
-    base : float
-        Full width of the loaded area for Boussinesq distribution (m).
+    if not np.isclose(interfaces[-1], H):
+        interfaces = np.concatenate((interfaces, [H]))
 
-    Returns
-    -------
-    settlement_surface : np.ndarray, shape (time_steps, nX)
-        Consolidation settlement at each surface x-position for every time step.
-        Analogous to settlement_history in the 1D model, extended over the surface width.
-    u_hist : np.ndarray, shape (time_steps, n_nodes)
-        Excess pore pressure at every mesh node for every time step.
-    unique_X : np.ndarray, shape (nX,)
-        x-coordinates corresponding to the columns of settlement_surface.
-        Use as the horizontal axis when plotting surface settlement.
-    node_X : np.ndarray, shape (n_nodes,)
-        x-coordinates of every mesh node (msh.geometry.x[:, 0]).
-        Pass directly to the plotting functions alongside node_Y.
-    node_Y : np.ndarray, shape (n_nodes,)
-        y-coordinates of every mesh node (msh.geometry.x[:, 1]).
-        Pass directly to the plotting functions alongside node_X.
-    """
+    if np.any(np.diff(interfaces) < 0):
+        raise ValueError("depths must be monotonically increasing.")
+
+    return interfaces
+
+
+def _as_layer_values(values):
+    arr = np.asarray(values, dtype=np.float64)
+    if arr.ndim == 0:
+        return arr.reshape(1)
+    if arr.ndim != 1 or arr.size == 0:
+        raise ValueError("layer values must be a scalar or a non-empty 1D sequence.")
+    return arr
+
+
+def _build_layer_field_2d(msh, interfaces, layer_values):
+    tdim = msh.topology.dim
+    msh.topology.create_connectivity(tdim, 0)
+    conn = msh.topology.connectivity(tdim, 0)
+
+    num_cells_local = msh.topology.index_map(tdim).size_local
+    cell_vertices = conn.array.reshape(num_cells_local, 3)
+
+    coords = msh.geometry.x
+    cell_mid_depths = -np.mean(coords[cell_vertices, 1], axis=1)
+
+    DG0 = fem.functionspace(msh, ("DG", 0))
+    layer_field = fem.Function(DG0)
+    layer_field.x.array[:] = 0.0
+
+    dofmap = DG0.dofmap
+    layer_ids = np.digitize(cell_mid_depths, interfaces[1:], right=True)
+    layer_ids = np.clip(layer_ids, 0, len(layer_values) - 1)
+
+    for cell in range(num_cells_local):
+        dof = dofmap.cell_dofs(cell)[0]
+        layer_field.x.array[dof] = layer_values[layer_ids[cell]]
+
+    layer_field.x.scatter_forward()
+    return layer_field
+
+
+def Get_terzaghi2D_FEA(H: float, W: float, nx: int, load: float, final_time: float, time_steps: int, Cv, Mv, base: float, depths=None):
 
     dt = final_time / (time_steps - 1)
+    Cv_values = _as_layer_values(Cv)
+    Mv_values = _as_layer_values(Mv)
+
+    if depths is None:
+        if Cv_values.size != 1 or Mv_values.size != 1:
+            raise ValueError("Layered Cv/Mv inputs require depths to be provided.")
+        interfaces = np.asarray([0.0, H], dtype=np.float64)
+    else:
+        interfaces = _normalise_depth_interfaces(depths, H)
+        if len(interfaces) != Cv_values.size + 1 or Cv_values.size != Mv_values.size:
+            raise ValueError("depths, Cv, and Mv must define the same number of layers.")
 
     msh = mesh.create_rectangle(
         MPI.COMM_WORLD,
@@ -115,8 +128,12 @@ def Get_terzaghi2D_FEA(
 
     # Variational form (implicit Euler)
     u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
-    c = fem.Constant(msh, Cv)
-    a = (u * v) * ufl.dx + dt * c * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx
+    if Cv_values.size == 1:
+        kappa = fem.Constant(msh, Cv_values[0])
+    else:
+        kappa = _build_layer_field_2d(msh, interfaces, Cv_values)
+
+    a = (u * v) * ufl.dx + dt * kappa * ufl.dot(ufl.grad(u), ufl.grad(v)) * ufl.dx
     L = u_n * v * ufl.dx
     bilinear_form = fem.form(a)
     linear_form = fem.form(L)
@@ -157,9 +174,13 @@ def Get_terzaghi2D_FEA(
     # --- Settlement post-processing ---
     node_X = msh.geometry.x[:, 0].copy()
     node_Y = msh.geometry.x[:, 1].copy()
+    node_depths = -node_Y
 
     u0 = u_hist[0, :]
-    settlement_slices = Mv * (u0[None, :] - u_hist) * (H / (nx + 1))
+    node_layer_ids = np.digitize(node_depths, interfaces[1:], right=True)
+    node_layer_ids = np.clip(node_layer_ids, 0, len(Mv_values) - 1)
+    Mv_profile = Mv_values[node_layer_ids]
+    settlement_slices = Mv_profile[None, :] * (u0[None, :] - u_hist) * (H / (nx + 1))
 
     # Bin nodes by x-coordinate to get surface settlement per x-column
     tol = 1e-8

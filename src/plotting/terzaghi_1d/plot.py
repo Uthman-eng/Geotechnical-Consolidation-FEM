@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 def Get_Settlement_Plot(settlement_hist, time):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize = (7,4))
     ax.plot(time, -settlement_hist, label="FEM Settlement")
     ax.set_xlabel("Time (Days)")
     ax.set_ylabel("Settlement (m)")

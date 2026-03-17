@@ -31,13 +31,7 @@ def Get_Settlement_Animation(settlement_surface, unique_X, time, interval=30):
         ax.set_title(f"Settlement - t = {time[frame]:.1f} days")
         return (line,)
 
-    anim = animation.FuncAnimation(
-        fig=fig,
-        func=update,
-        frames=len(time),
-        interval=interval,
-        blit=True,
-    )
+    anim = animation.FuncAnimation( fig=fig, func=update, frames=len(time), interval=interval, blit=True)
     return fig, anim
 
 

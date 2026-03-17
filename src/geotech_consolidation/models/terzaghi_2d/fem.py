@@ -82,6 +82,26 @@ def _build_layer_field_2d(msh, interfaces, layer_values):
     return layer_field
 
 
+def _settlement_by_surface_column(strain_hist, node_X, node_depths):
+    tol = 1e-8
+    x_rounded = np.round(node_X / tol) * tol
+    unique_X, inv = np.unique(x_rounded, return_inverse=True)
+    settlement_surface = np.zeros((strain_hist.shape[0], unique_X.size), dtype=float)
+
+    for x_id in range(unique_X.size):
+        column_nodes = np.where(inv == x_id)[0]
+        column_order = np.argsort(node_depths[column_nodes])
+        ordered_nodes = column_nodes[column_order]
+        ordered_depths = node_depths[ordered_nodes]
+        settlement_surface[:, x_id] = np.trapezoid(
+            strain_hist[:, ordered_nodes],
+            x=ordered_depths,
+            axis=1,
+        )
+
+    return settlement_surface, unique_X
+
+
 def Get_terzaghi2D_FEA(H: float, W: float, nx: int, load: float, final_time: float, time_steps: int, Cv, Mv, base: float, depths=None):
 
     dt = final_time / (time_steps - 1)
@@ -180,20 +200,11 @@ def Get_terzaghi2D_FEA(H: float, W: float, nx: int, load: float, final_time: flo
     node_layer_ids = np.digitize(node_depths, interfaces[1:], right=True)
     node_layer_ids = np.clip(node_layer_ids, 0, len(Mv_values) - 1)
     Mv_profile = Mv_values[node_layer_ids]
-    settlement_slices = Mv_profile[None, :] * (u0[None, :] - u_hist) * (H / (nx + 1))
-
-    # Bin nodes by x-coordinate to get surface settlement per x-column
-    tol = 1e-8
-    x_rounded = np.round(node_X / tol) * tol
-    unique_X, inv = np.unique(x_rounded, return_inverse=True)
-    nX = unique_X.size
-    nt = settlement_slices.shape[0]
-
-    settlement_by_x = np.empty((nX, nt), dtype=float)
-    for t in range(nt):
-        settlement_by_x[:, t] = np.bincount(inv, weights=settlement_slices[t], minlength=nX)
-
-    # (time_steps, nX) — analogous to settlement_history in 1D, extended over the surface
-    settlement_surface = settlement_by_x.T
+    strain_hist = Mv_profile[None, :] * (u0[None, :] - u_hist)
+    settlement_surface, unique_X = _settlement_by_surface_column(
+        strain_hist,
+        node_X,
+        node_depths,
+    )
 
     return settlement_surface, u_hist, unique_X, node_X, node_Y

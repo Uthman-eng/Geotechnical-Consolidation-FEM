@@ -28,27 +28,40 @@ def initial_condition2(x, load, base):
     return u
 
 
-def _normalise_depth_interfaces(depths, H):
+def _normalise_layer_depths(depths, H):
     depths = np.asarray(depths, dtype=np.float64)
     if depths.ndim != 1 or depths.size == 0:
         raise ValueError("depths must be a non-empty 1D sequence.")
 
     if np.isclose(depths[0], 0.0):
-        interfaces = depths.copy()
+        layer_depths = depths.copy()
     else:
-        interfaces = np.concatenate(([0.0], depths))
+        layer_depths = np.concatenate(([0.0], depths))
 
-    if not np.isclose(interfaces[-1], H):
-        interfaces = np.concatenate((interfaces, [H]))
+    if not np.isclose(layer_depths[-1], H):
+        layer_depths = np.concatenate((layer_depths, [H]))
 
-    if np.any(np.diff(interfaces) < 0):
-        raise ValueError("depths must be monotonically increasing.")
+    if np.any(np.diff(layer_depths) <= 0):
+        raise ValueError("depths must be strictly increasing.")
 
-    return interfaces
+    return layer_depths
 
 
-def Get_Kappa(msh, z, interfaces, Cv):
-# defining dimensions and connectivity  
+def _layer_numbers_from_depths(depth_values, layer_depths):
+    depth_values = np.asarray(depth_values, dtype=np.float64)
+    layer_numbers = np.digitize(depth_values, layer_depths[1:], right=True)
+    return np.clip(layer_numbers, 0, len(layer_depths) - 2)
+
+
+def _layer_values_at_depths(depth_values, layer_depths, layer_values):
+    layer_values = np.asarray(layer_values, dtype=np.float64)
+    if len(layer_depths) != len(layer_values) + 1:
+        raise ValueError("layer depths and layer values must define the same number of layers.")
+    return layer_values[_layer_numbers_from_depths(depth_values, layer_depths)]
+
+
+def Get_Kappa(msh, layer_depths, Cv):
+    # defining dimensions and connectivity
     tdim = msh.topology.dim
     msh.topology.create_connectivity(tdim, 0)
     conn = msh.topology.connectivity(tdim, 0)
@@ -59,38 +72,19 @@ def Get_Kappa(msh, z, interfaces, Cv):
     x = msh.geometry.x[:,0] # z geomtry only 
     midpoints = 0.5 * (x[cell_verts[:, 0]] + x[cell_verts[:, 1]]) # cell_verts the 0 or 1 talks about the left and right respectively
 
-    cell_markers = np.zeros(num_cells_local, dtype=np.int32)
-
     DG0 = fem.functionspace(msh, ("DG", 0))
-
-    for i in range(len(Cv)):
-        z0 = interfaces[i]
-        z1 = interfaces[i + 1]
-        mask = (midpoints >= z0) & (midpoints < z1)  # returning on true bo0lean
-        cell_markers[mask] = i + 1
-
-    # include bottom endpoint safely in last layer
-    cell_markers[midpoints >= z[-2]] = len(Cv)
+    kappa_values = _layer_values_at_depths(midpoints, layer_depths, Cv)
 
     kappa = fem.Function(DG0)
-
     dofmap = DG0.dofmap
     kappa.x.array[:] = 0.0
 
     for cell in range(num_cells_local):
-        lid = cell_markers[cell]
-        if lid ==0 :
-            continue
         dof = dofmap.cell_dofs(cell)[0]
-        kappa.x.array[dof] = Cv[lid - 1]
+        kappa.x.array[dof] = kappa_values[cell]
 
-    # check 
     kappa.x.scatter_forward()
-    # THIS IS FOR CHECKING IF MAKES SENSE
-    # for c in range(min(10, num_cells_local)):
-    #    dof = DG0.dofmap.cell_dofs(c)[0]
-    #    print("cell", c, "layer", cell_markers[c], "kappa", kappa.x.array[dof])
-    return kappa 
+    return kappa
 
 
 
@@ -100,10 +94,10 @@ def Get_terzaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_st
     # defining further paramters 
     dt = T / (time_steps - 1)
     H = max(depths)
-    z = np.linspace(0, H, num + 1, dtype= np.float64) 
-    interfaces = _normalise_depth_interfaces(depths, H)
+    z = np.linspace(0, H, num + 1, dtype= np.float64)
+    layer_depths = _normalise_layer_depths(depths, H)
 
-    if len(interfaces) != len(Cv) + 1 or len(Cv) != len(Mv):
+    if len(layer_depths) != len(Cv) + 1 or len(Cv) != len(Mv):
         raise ValueError("depths, Cv, and Mv must define the same number of layers.")
 
 
@@ -120,7 +114,7 @@ def Get_terzaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_st
     else:
         initial_condition = lambda x : initial_condition2(x, Load, Base)
 
-    kappa = Get_Kappa(msh, z, interfaces, Cv)
+    kappa = Get_Kappa(msh, layer_depths, Cv)
 
     V = fem.functionspace(msh, ("Lagrange", 1))
 
@@ -190,11 +184,9 @@ def Get_terzaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_st
     u0 = u_hist[0, :]                 # initial condition in space
 
     # getting settlement
-    layer_ids = np.digitize(z, interfaces[1:], right=True)
-    layer_ids = np.clip(layer_ids, 0, len(Mv) - 1) # added incase 
-    Mv_profile = np.asarray(Mv, dtype=np.float64)[layer_ids]
+    Mv_profile = _layer_values_at_depths(z, layer_depths, Mv)
     strain_hist = Mv_profile[None, :] * (u0[None, :] - u_hist)
-    settlement_history = np.sum(strain_hist * (H / num), axis=1)
+    settlement_history = np.trapezoid(strain_hist, x=z, axis=1)
     settlement = u0 * Mv_profile * (H / num)
 
     return settlement_history, u_hist, settlement

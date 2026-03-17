@@ -123,7 +123,7 @@ def Get_terzaghi1D_FEA(depth:float, cell_num:int, load:float, final_time:float, 
     
     Mv_profile = Mv_vals[layer_ids]
     strain_hist = Mv_profile[None, :] * (u0[None, :] - u_hist)
-    settlement_history = np.sum(strain_hist * (abs_depth / cell_num), axis=1)
+    settlement_history = np.trapezoid(strain_hist, x=z, axis=1)
     settlement = u0 * Mv_profile * (abs_depth / cell_num)
 
     return settlement_history, u_hist, settlement

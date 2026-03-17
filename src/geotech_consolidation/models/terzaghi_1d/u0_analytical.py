@@ -9,7 +9,7 @@ def terzaghi(u0, H, Tx, time_step, nodes, Cv, n_terms):
 
     for n in range(n_terms):
         m = (2 * n) + 1
-        Bm_data[n] = (2.0 / H) * np.trapz(
+        Bm_data[n] = (2.0 / H) * np.trapezoid(
             u0 * np.sin((np.pi * m * Z) / (2.0 * H)),
             Z
         )

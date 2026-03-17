@@ -5,7 +5,6 @@ import streamlit as st
 from src.geotech_consolidation.models.terzaghi_2d.fem import Get_terzaghi2D_FEA
 from src.plotting.terzaghi_2d.plot import (
     Get_Mesh_Plot,
-    Get_Pore_Pressure_Plot,
     Get_Settlement_Plot,
 )
 
@@ -43,7 +42,6 @@ with col2:
         mv_text = "5e-4"
 
 with col1:
-    if st.button("Solve 2D model"):
         try:
             final_time = final_time_days * 60 * 60 * 24
             time = np.linspace(0.0, final_time_days, int(time_steps))
@@ -77,16 +75,6 @@ with col1:
             fig_mesh, _ = Get_Mesh_Plot(node_X, node_Y)
             st.pyplot(fig_mesh)
 
-            st.subheader("Pore Pressure")
-            st.write("Pore-pressure contour at the selected time step.")
-            time_idx = st.slider(
-                "Pore-pressure time step",
-                min_value=0,
-                max_value=int(time_steps) - 1,
-                value=min(10, int(time_steps) - 1),
-            )
-            fig_pressure, _ = Get_Pore_Pressure_Plot(u_hist, node_X, node_Y, time_idx, time)
-            st.pyplot(fig_pressure)
 
             st.subheader("Settlement")
             st.write("Surface settlement profile at the selected time step.")
@@ -109,5 +97,4 @@ with col1:
             ax_hist.legend()
             st.pyplot(fig_hist)
 
-            st.write(f"Maximum pore pressure: {u_hist.max():.2f} kPa")
-            st.write(f"Maximum surface settlement: {settlement_surface.max():.4f} m")
+            st.write(f"Maximum surface settlement (after {final_time_days} days): {settlement_surface.max():.4f} m")

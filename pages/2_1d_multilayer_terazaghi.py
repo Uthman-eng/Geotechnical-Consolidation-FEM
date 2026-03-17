@@ -39,11 +39,14 @@ with col2:
     depths = [float(x.strip()) for x in depths_text.split(",") if x.strip()]
     H = np.max(depths)
 
-    Mv_text = st.text_input("Mv (comma separated)", "5e-4, 10e-4, 5e-4, 5e-4")
+    Mv_text = st.text_input("Mv  m²/kN  (comma separated per layer)", "5e-4, 10e-4, 5e-4, 5e-4")
     Mv = [float(x.strip()) for x in Mv_text.split(",") if x.strip()]
 
-    Cv_text = st.text_input("Cv (comma separated)", "2e-7,2e-7, 2e-7, 2e-7")
-    Cv = [float(x.strip()) for x in Cv_text.split(",") if x.strip()]
+    k_text = st.text_input("Permeability k  m/s  (comma separated per layer)", "9.81e-10, 19.62e-10, 9.81e-10, 9.81e-10")
+    k_list = [float(x.strip()) for x in k_text.split(",") if x.strip()]
+    gamma_w = 9.81   # unit weight of water (kN/m³)
+    Cv = [k_i / (Mv_i * gamma_w) for k_i, Mv_i in zip(k_list, Mv)]
+    st.caption("Cv per layer (m²/s): " + ",  ".join(f"{c:.2e}" for c in Cv))
 
 
 

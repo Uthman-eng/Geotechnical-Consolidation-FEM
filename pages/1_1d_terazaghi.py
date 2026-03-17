@@ -31,10 +31,12 @@ with col2:
     Tx = st.number_input("Final time (days)", value= 365.0)
     Tx = Tx*60*60*24
     time_step = st.number_input("time step", value=1000)
-    Cv = st.number_input("Cv (1e-7)", value=2)
-    Cv = 1e-7 * Cv 
-    Mv = st.number_input("Mv (1e-4) (m^2/kN)", value=5)
-    Mv = Mv*1e-4
+    Mv = st.number_input("Mv (1e-4)  m²/kN", value=5)
+    Mv = Mv * 1e-4
+    k = st.number_input("Permeability k  (m/s)", value=9.81e-10, format="%.2e")
+    gamma_w = 9.81   # unit weight of water (kN/m³)
+    Cv = k / (Mv * gamma_w)
+    st.caption(f"Cv = {Cv:.2e} m²/s  (derived from k = Cv · Mv · γw)")
     initial_conditions = st.toggle("Use uniform initial condition (U0)", value=False) 
     base = st.number_input("base of load placed (m)", value =2.5)
 

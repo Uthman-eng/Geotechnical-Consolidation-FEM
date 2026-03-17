@@ -29,8 +29,6 @@ def boussinesq_condition_2d(x, load, base):
 
 def _normalise_depth_interfaces(depths, H):
     depths = np.asarray(depths, dtype=np.float64)
-    if depths.ndim != 1 or depths.size == 0:
-        raise ValueError("depths must be a non-empty 1D sequence.")
 
     if np.isclose(depths[0], 0.0):
         interfaces = depths.copy()
@@ -40,9 +38,6 @@ def _normalise_depth_interfaces(depths, H):
     if not np.isclose(interfaces[-1], H):
         interfaces = np.concatenate((interfaces, [H]))
 
-    if np.any(np.diff(interfaces) < 0):
-        raise ValueError("depths must be monotonically increasing.")
-
     return interfaces
 
 
@@ -50,8 +45,6 @@ def _as_layer_values(values):
     arr = np.asarray(values, dtype=np.float64)
     if arr.ndim == 0:
         return arr.reshape(1)
-    if arr.ndim != 1 or arr.size == 0:
-        raise ValueError("layer values must be a scalar or a non-empty 1D sequence.")
     return arr
 
 
@@ -109,13 +102,9 @@ def Get_terzaghi2D_FEA(H: float, W: float, nx: int, load: float, final_time: flo
     Mv_values = _as_layer_values(Mv)
 
     if depths is None:
-        if Cv_values.size != 1 or Mv_values.size != 1:
-            raise ValueError("Layered Cv/Mv inputs require depths to be provided.")
         interfaces = np.asarray([0.0, H], dtype=np.float64)
     else:
         interfaces = _normalise_depth_interfaces(depths, H)
-        if len(interfaces) != Cv_values.size + 1 or Cv_values.size != Mv_values.size:
-            raise ValueError("depths, Cv, and Mv must define the same number of layers.")
 
     msh = mesh.create_rectangle(
         MPI.COMM_WORLD,

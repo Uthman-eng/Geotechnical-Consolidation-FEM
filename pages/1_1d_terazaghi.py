@@ -1,120 +1,94 @@
 import streamlit as st
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
+import plotly.express as px
+
+from ui.style import page_style
 
 from src.geotech_consolidation.models.terzaghi_1d.fem import Get_terzaghi1D_FEA
-from src.plotting.terzaghi_1d.plot import Get_Settlement_Plot
+from src.plotting.terzaghi_1d.plot import Get_Settlement_Plot_Plotly, consolidation_heatmap_plotly
+page_style("1D Terzaghi Consolidation")
 
+seconds_to_days = 60 * 60 * 24
 
-# setting up Page config for streamlit 
-st.set_page_config(layout ="wide")
-st.title("1D terzaghi Consolidation Theory")
+st.title("1D Terzaghi Consolidation")
+st.caption("Single layer FEM model with uniform or Boussinesq initial pore pressure.")
 
+controls, results = st.columns([1, 2.75], gap="large")
+result_key = "oneD_single_result"
 
-# pre text within 
-st.subheader("Single-layer consolidation (Finite Element Analysis)")
-st.write(
-    "This dashboard solves 1D Terzaghi consolidation using the finite element method (FEM). "
-    " Choose the parameter and numerical settings, then click **Solve** to compute excess pore pressure"
-    " dissipation over and settlement over time. The initial excess pore pressure can be set to uniform "
-    " (constant with depth) or a non-uniform (Boussinesq).")
+with controls:
+    with st.form("oneD_single_form"):
+        H = st.number_input("Depth (m)", min_value=0.5, value=5.0)
+        num = int(st.number_input("Elements", min_value=10, max_value=1000, value=100))
+        load = st.number_input("Load applied (kPa)", min_value=0.0, value=100.0)
+        final_time_days = st.number_input("Final time (days)", min_value=1.0, value=365.0)
+        time_steps = int(st.number_input("Time steps", min_value=10, max_value=10000, value=1000))
+        Mv = st.number_input("Mv (m²/kN)", min_value=1e-12, value=5.0e-4)
+        k = st.number_input("Permeability k (m/s)", min_value=1e-12, value=9.81e-10, format="%.2e")
+        gamma_w = 9.81
+        Cv = k / (Mv * gamma_w)
+        st.caption(f"Cv = {Cv:.2e} m²/s")
+        initial_conditions = st.toggle("Use uniform initial condition", value=False)
+        base = st.number_input("Loaded width (m)", min_value=0.1, value=2.5)
+        solve = st.form_submit_button("Solve 1D model", use_container_width=True)
 
+with results:
+    if solve:
+        final_time = final_time_days * seconds_to_days
+        settlement_history, u_hist_raw, settlement = Get_terzaghi1D_FEA(H, num, load, final_time, time_steps, Cv, base, Mv, initial_conditions)
 
-
-
-col1, col2 = st.columns([3.5,1])
-with col2: 
-    H = st.number_input("depth (m)", value=5.0)  # in meters
-    num = st.number_input("number of elements", value=100)
-    P = st.number_input("Load applied (kPa)", value=100.0) 
-    Tx = st.number_input("Final time (days)", value= 365.0)
-    Tx = Tx*60*60*24
-    time_step = st.number_input("time step", value=1000)
-    Mv = st.number_input("Mv (1e-4)  m²/kN", value=5)
-    Mv = Mv * 1e-4
-    k = st.number_input("Permeability k  (m/s)", value=9.81e-10, format="%.2e")
-    gamma_w = 9.81   # unit weight of water (kN/m³)
-    Cv = k / (Mv * gamma_w)
-    st.caption(f"Cv = {Cv:.2e} m²/s  (derived from k = Cv · Mv · γw)")
-    initial_conditions = st.toggle("Use uniform initial condition (U0)", value=False) 
-    base = st.number_input("base of load placed (m)", value =2.5)
-
-nodes = num + 1
-Z = -np.linspace(0, H, num=nodes)
-
-
-with col1:
-    if st.button("Solve"):
-        settlement_history, fem_udata_raw, settlement = Get_terzaghi1D_FEA(
-            H,
-            num,
-            P,
-            Tx,
-            time_step,
-            Cv,
-            base,
-            Mv,
-            initial_conditions,
-        )
-            
-        fem_udata = fem_udata_raw.T
-        initial_pressure = fem_udata[:, 0]
-        time_days = Tx / (60 * 60 * 24)
-        time = np.linspace(0, time_days, num=time_step)
+        u_hist = u_hist_raw.T
+        depth = -np.linspace(0.0, H, num + 1)
+        time = np.linspace(0.0, final_time_days, num=time_steps)
         total_settlement = np.sum(settlement)
+        final_time_settlement = settlement_history[-1]
+        st.session_state[result_key] = {
+            "u_hist": u_hist,
+            "depth": depth,
+            "time": time,
+            "total_settlement": total_settlement,
+            "final_time_settlement": final_time_settlement,
+            "settlement_history": settlement_history,
+            "final_time_days": final_time_days,
+        }
 
-        # plotting initial condition
-        st.subheader("Initial Condition (FEM)")
-        st.write(
-            "Initial excess pore pressure profile at *t* = 0 computed by the FEM solver "
-            "for the selected load and initial condition."
-        )
-        fig_ini, ax_ini = plt.subplots(figsize=(8, 5))
-        ax_ini.plot(initial_pressure, Z, label="FEM initial condition")
-        ax_ini.set_xlabel("Depths (z)")
-        ax_ini.set_ylabel("Initial excess pore pressure, (u0 kPa)")
-        ax_ini.legend()
-        plt.title("Initial Conditions (U0) over depth (z)")
-        st.pyplot(fig_ini)
+    if result_key not in st.session_state:
+        st.info("Choose parameters and click **Solve 1D model**.")
+    else:
+        result = st.session_state[result_key]
+        u_hist = result["u_hist"]
+        depth = result["depth"]
+        time = result["time"]
+        total_settlement = result["total_settlement"]
+        final_time_settlement = result["final_time_settlement"]
+        settlement_history = result["settlement_history"]
+        final_time_days = result["final_time_days"]
 
-        # plotting end settlement
-        st.subheader("Settlement response (FEM)")
-        st.write(
-            "Settlement is computed from the FEM pore pressure and plotted"
-            " over the selected time for the chosen initial condition."
-        )
-        fig_settl, ax = Get_Settlement_Plot(settlement_history, time)
-        ax.set_ylim(-total_settlement, 0)
-        st.pyplot(fig_settl)
+        metric1, metric2, metric3 = st.columns([1, 1, 1])
+        metric1.metric("Total settlement", f"{total_settlement:.4f} m")
+        metric2.metric(f"Settlement at **{final_time_days}** days", f"{final_time_settlement:.4f} m")
 
-        st.write(f"Total consolidation settlement: {total_settlement:.4f} m")
-        st.write(f"Settlement after {time_days:.1f} days: {settlement_history[-1]:.4f} m")
+        tab1, tab2, tab3 = st.tabs(["Settlement", "Initial Profile", "Pore Pressure"])
 
-        # plotting excess pore pressure heat map
-        st.subheader("Excess Pore pressure dissipation (depth time map)")
-        st.write("Heatmap of Pore pressure dissipation through time and depth")
-        fig_cons, ax_cons = plt.subplots(figsize=(8, 5))
-        kx = max(1, len(time) // 10)    # ~8 labels across, auto
-        ky = max(1, len(Z) // 10)  # ~10 labels down, auto 
-        ax_cons = sns.heatmap(
-            fem_udata,
-            annot=False,
-            cmap="Blues",
-            xticklabels=time,
-            yticklabels=Z,
-        )
-        ax_cons.set_xticks(np.arange(0, len(time), kx) + 0.5)
-        ax_cons.set_xticklabels(
-            [f"{time[i]:.1f}" for i in range(0, len(time), kx)],
-            rotation=0,
-        )
-        ax_cons.set_yticks(np.arange(0, len(Z), ky) + 0.5)
-        ax_cons.set_yticklabels(
-            [f"{Z[i]:.1f}" for i in range(0, len(Z), ky)],
-            rotation=0,
-        )
-        ax_cons.set_xlabel("Time (Days)")
-        ax_cons.set_ylabel("Depth (m)")
-        ax_cons.set_title("Excess Pore Pressure dissipation over time in a 1D Mesh")
-        st.pyplot(fig_cons)
+        with tab1:
+            fig_settlement = Get_Settlement_Plot_Plotly(settlement_history, time)
+            st.plotly_chart(fig_settlement, use_container_width=True)
+
+
+        with tab2:
+            fig_ini = px.line(x = u_hist[:,0], y = depth,
+                  title = "Initial pore pressure profile",
+                  labels = {
+                      'x' : "Initial pore pressure profile",
+                      'y' : "Depth (m)"
+                  })
+            fig_ini.update_layout(height=650)
+            st.plotly_chart(fig_ini, use_container_width=True)
+
+
+        with tab3:
+            fig_cons = consolidation_heatmap_plotly(u_hist, time, depth)
+            st.plotly_chart(fig_cons, use_container_width=True)
+
+
+ 

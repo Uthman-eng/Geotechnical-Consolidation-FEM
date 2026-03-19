@@ -1,6 +1,6 @@
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import plotly.express as px 
+import plotly.graph_objects as go
 
 
 def Get_Settlement_Plot(settlement_hist, time):
@@ -12,3 +12,29 @@ def Get_Settlement_Plot(settlement_hist, time):
     ax.grid(True)
     ax.legend()
     return fig, ax
+
+
+def Get_Settlement_Plot_Plotly(settlement_hist, time):
+    fig = px.line(x = time, y = -settlement_hist,
+                  title = "Settlement vs Time",
+                  labels = {
+                      'x' : "Time (days)",
+                      'y' : "Settlement (m)"
+                  })
+    fig.update_layout(height=650)
+    return fig
+ 
+def consolidation_heatmap_plotly(data, x, y):
+    fig = go.Figure(data=go.Heatmap(
+                z = data,
+                x = x, 
+                y = y,
+                colorscale="Viridis"
+                ))
+    fig.update_layout(
+        title="Pore Pressure Dissipation Over Time",
+        xaxis=dict(title="Time (days)", nticks=10),
+        yaxis=dict(title="Depth (m)", nticks=10),
+        height=650
+        )
+    return fig 

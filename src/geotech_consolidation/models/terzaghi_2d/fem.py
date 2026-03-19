@@ -42,10 +42,7 @@ def _normalise_depth_interfaces(depths, H):
 
 
 def _as_layer_values(values):
-    arr = np.asarray(values, dtype=np.float64)
-    if arr.ndim == 0:
-        return arr.reshape(1)
-    return arr
+    return np.atleast_1d(np.asarray(values, dtype=np.float64))
 
 
 def _build_layer_field_2d(msh, interfaces, layer_values):

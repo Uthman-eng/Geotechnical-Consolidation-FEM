@@ -1,107 +1,97 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
+import plotly.express as px
 
+from ui.inputs import parse_float_list
+from ui.style import page_style
 from src.geotech_consolidation.models.terzaghi_1d_multi.fem import Get_terzaghi1dMultilayer_FEA
-from src.plotting.terzaghi_1d.plot import Get_Settlement_Plot
-
-# setting up Page config for streamlit 
-st.set_page_config(layout ="wide")
-st.title("1D terzaghi Consolidation Settlement - Multi Layer")
-
-st.write(
-    "This dashboard solves 1D Terzaghi consolidation for a **multi-layer soil profile** using the finite element method (FEM). "
-    "Each layer can have different consolidation parameters. After selecting the soil profile and numerical settings, "
-    "click **Solve** to compute excess pore pressure dissipation and settlement over time. The initial excess pore pressure can be set to uniform "
-    " (constant with depth) or a non-uniform (Boussinesq).")
-
-st.write("Please ensure that when entering Depths, Mv, Cv information," \
-        "that these are comma seperated")
+from src.plotting.terzaghi_1d.plot import Get_Settlement_Plot_Plotly, consolidation_heatmap_plotly
 
 
+page_style("1D Multilayer Consolidation")
 
-col1, col2 = st.columns([3.5,1])
-with col2: 
-    num = st.number_input("number of elements", value=100)
-
-    Load = st.number_input("Load applied (kPa)", value=100.0) 
-
-    Tx = st.number_input("Final time (days)", value= 365.0)
-    Tx = Tx*60*60*24
-
-    time_step = st.number_input("time step", value=1000)
-
-    initial_conditions = st.toggle("Use uniform initial condition (U0)", value=False) 
-    base = st.number_input("base of load placed (m)", value =2.5)
-
-    depths_text = st.text_input("Depths (comma separated)", "1, 2, 4, 5")
-    depths = [float(x.strip()) for x in depths_text.split(",") if x.strip()]
-    H = np.max(depths)
-
-    Mv_text = st.text_input("Mv  m²/kN  (comma separated per layer)", "5e-4, 10e-4, 5e-4, 5e-4")
-    Mv = [float(x.strip()) for x in Mv_text.split(",") if x.strip()]
-
-    k_text = st.text_input("Permeability k  m/s  (comma separated per layer)", "9.81e-10, 19.62e-10, 9.81e-10, 9.81e-10")
-    k_list = [float(x.strip()) for x in k_text.split(",") if x.strip()]
-    gamma_w = 9.81   # unit weight of water (kN/m³)
-    Cv = [k_i / (Mv_i * gamma_w) for k_i, Mv_i in zip(k_list, Mv)]
-    st.caption("Cv per layer (m²/s): " + ",  ".join(f"{c:.2e}" for c in Cv))
+seconds_to_days = 60 * 60 * 24
+gamma_w = 9.81
 
 
+st.title("1D Terzaghi Consolidation - Multilayer")
+st.caption("Layer-wise `Cv` and `Mv` with the same 1D FEM formulation.")
 
-with col1:
-    if st.button("Solve"): 
-        # kept this inside the button so it doesnt try to keep rerunning
-        settlement_history, fem_udata, settlement = Get_terzaghi1dMultilayer_FEA(depths, num, Load, Tx, time_step, Cv ,Mv, base, U0=initial_conditions)
-        Z = -np.linspace(0, H, num + 1 )
-        time = np.linspace(0,(Tx/(60*60*24)), num = time_step)
+controls, results = st.columns([1.05, 2.4], gap="large")
+result_key = "oneD_multi_result"
 
-        
-        # plotting initial conditions 
-        st.subheader("Initials Conditions")
-        st.write("Initial excess pore pressure profile at *t* = 0.")
+with controls:
+    with st.form("oneD_multi_form"):
+        num = int(st.number_input("Elements", min_value=10, max_value=1000, value=100))
+        load = st.number_input("Load applied (kPa)", min_value=0.0, value=100.0)
+        final_time_days = st.number_input("Final time (days)", min_value=1.0, value=365.0)
+        time_steps = int(st.number_input("Time steps", min_value=10, max_value=5000, value=1000))
+        initial_conditions = st.toggle("Use uniform initial condition", value=False)
+        base = st.number_input("Loaded width (m)", min_value=0.1, value=2.5)
+        depths = parse_float_list(st.text_input("Depths (m)", "1, 2, 4, 5"))
+        H = max(depths)
+        Mv = parse_float_list(st.text_input("Mv by layer", "5e-4, 10e-4, 5e-4, 5e-4"))
+        k_list = parse_float_list(st.text_input("Permeability k by layer", "9.81e-10, 19.62e-10, 9.81e-10, 9.81e-10"))
+        gamma_w = 9.81
+        Cv = [k_i / (Mv_i * gamma_w) for k_i, Mv_i in zip(k_list, Mv)]
+        st.caption("Cv: " + ", ".join(f"{value:.2e}" for value in Cv))
 
-        fig_ini, ax_ini = plt.subplots(figsize = (8,5))
-        ax_ini.plot(fem_udata.T[:,0], Z , label="initial conditions")
-        ax_ini.set_ylabel("Depths (z)")
-        ax_ini.set_xlabel("Initial excess pore pressure, (u0 kPa)")
-        ax_ini.legend()
-        plt.title("Initial Conditions (U0) over depth (z)" )
-        st.pyplot(fig_ini)
+        solve = st.form_submit_button("Solve multilayer model", use_container_width=True)
 
+with results:
+    if solve:
+        final_time = final_time_days * seconds_to_days
+        settlement_history, u_hist_raw, settlement = Get_terzaghi1dMultilayer_FEA( depths, num, load, final_time, time_steps, Cv, Mv, base, U0=initial_conditions)
 
-        # plotting end settlement 
-        st.subheader("Settlement response (FEM)")
-        st.write("Settlement is computed from the FEM pore pressure and plotted" \
-        " over the selected time for given initial condition.")
+        u_hist = u_hist_raw.T
+        depth = -np.linspace(0.0, H, num + 1)
+        time = np.linspace(0.0, final_time_days, num=time_steps)
+        total_settlement = np.sum(settlement)
+        final_time_settlement = [0]
 
-        st.write(f"Total Consolidation Settlement:  {np.sum(settlement, axis =0):.4f}m")
-        st.write(f"Total ConsolidationSettlement after {Tx/(60*60*24)} days:    {settlement_history[-1]:.4f}m")
-        fig_settl, ax = Get_Settlement_Plot(settlement_history, time)
-        ax.set_ylim(-np.max(np.sum(settlement, axis = 0)),0)
-        st.pyplot(fig_settl)
+        st.session_state[result_key] = {
+            "u_hist": u_hist,
+            "depth": depth,
+            "time": time,
+            "total_settlement": total_settlement,
+            "final_time_settlement": final_time_settlement,
+            "settlement_history": settlement_history,
+            "layer_count": len(Mv),
+        }
 
+    if result_key not in st.session_state:
+        st.info("Choose the layer properties and click `Solve multilayer model`.")
+    else:
+        result = st.session_state[result_key]
+        u_hist = result["u_hist"]
+        depth = result["depth"]
+        time = result["time"]
+        total_settlement = result["total_settlement"]
+        final_time_settlement = result["final_time_settlement"]
+        settlement_history = result["settlement_history"]
+        layer_count = result["layer_count"]
 
+        metric1, metric2, metric3 = st.columns(3)
+        metric1.metric("Total settlement", f"{total_settlement:.4f} m")
+        metric2.metric("Settlement at final time", f"{final_time_settlement:.4f} m")
+        metric3.metric("Layer count", f"{layer_count}")
 
-        # plotting excess pore pressure heat map
-        st.subheader("Excess Pore pressure dissipation (depth time map)")
-        st.write("Heatmap of Pore pressure dissipation through time and depth.")
-        fig_cons, ax_cons = plt.subplots(figsize = (8,5))
-        kx = max(1, len(time)//10)    # ~8 labels across, auto
-        ky = max(1, len(Z)//10)  # ~10 labels down, auto 
-        ax_cons = sns.heatmap(fem_udata.T,
-                            annot=False,
-                            cmap="Blues", 
-                            xticklabels=time,
-                            yticklabels=Z)
-        ax_cons.set_xticks(np.arange(0, len(time), kx) + 0.5)
-        ax_cons.set_xticklabels([f"{time[i]:.1f}" for i in range(0, len(time), kx)],
-                   rotation=0)
-        ax_cons.set_yticks(np.arange(0, len(Z), ky) + 0.5)
-        ax_cons.set_yticklabels([f"{Z[i]:.1f}" for i in range(0, len(Z), ky)],
-                   rotation=0)      
-        ax_cons.set_xlabel("Time (Days)")
-        ax_cons.set_ylabel("Depth (m)")
-        ax_cons.set_title("Excess Pore Pressure dissipation over time in a 1D Mesh")
-        st.pyplot(fig_cons)
+        tab1, tab2, tab3 = st.tabs(["Settlement", "Initial Profile", "Pore Pressure"])
+
+        with tab1:
+            fig_settlement = Get_Settlement_Plot_Plotly(settlement_history, time)
+            st.plotly_chart(fig_settlement, use_container_width=True)
+
+        with tab2:
+            fig_ini = px.line(
+                x=u_hist[:, 0],
+                y=depth,
+                title="Initial pore pressure profile",
+                labels={"x": "Excess pore pressure (kPa)", "y": "Depth (m)"},
+            )
+            fig_ini.update_layout(height=650)
+            st.plotly_chart(fig_ini, use_container_width=True)
+
+        with tab3:
+            fig_cons = consolidation_heatmap_plotly(u_hist, time, depth)
+            st.plotly_chart(fig_cons, use_container_width=True)

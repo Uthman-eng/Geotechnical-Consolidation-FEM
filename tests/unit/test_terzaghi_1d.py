@@ -8,7 +8,7 @@ from src.geotech_consolidation.models.terzaghi_1d.fem import Get_terzaghi1D_FEA
 from src.geotech_consolidation.models.terzaghi_1d.fem import boussinesq_condition
 from src.geotech_consolidation.models.terzaghi_1d.u0_analytical import Get_terzaghi1d_Analytical_u0
 
-SECONDS_PER_DAY = 60 * 60 * 24
+seconds_to_days = 60 * 60 * 24
 
 def test_single_layer_model_runs():
     H = 10.0
@@ -23,7 +23,7 @@ def test_single_layer_model_runs():
         H,
         num_elements,
         load,
-        final_time_days * SECONDS_PER_DAY,
+        final_time_days * seconds_to_days,
         num_time_steps,
         Cv,
         H / 2.0,
@@ -45,7 +45,7 @@ def test_single_layer_model_runs():
         H,
         num_elements,
         load,
-        final_time_days * SECONDS_PER_DAY,
+        final_time_days * seconds_to_days,
         num_time_steps,
         Cv,
         H / 2.0,
@@ -75,7 +75,7 @@ def test_boussinesq_initial_condition_matches_u0_analytical_solution():
         H,
         num_elements,
         load,
-        final_time_days * SECONDS_PER_DAY,
+        final_time_days * seconds_to_days,
         num_time_steps,
         Cv,
         base,
@@ -90,7 +90,7 @@ def test_boussinesq_initial_condition_matches_u0_analytical_solution():
         u0,
         H,
         num_elements,
-        final_time_days * SECONDS_PER_DAY,
+        final_time_days * seconds_to_days,
         num_time_steps,
         Cv,
         n_terms,

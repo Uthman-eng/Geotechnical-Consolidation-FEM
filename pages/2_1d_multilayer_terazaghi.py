@@ -46,9 +46,8 @@ with results:
         u_hist = u_hist_raw.T
         depth = -np.linspace(0.0, H, num + 1)
         time = np.linspace(0.0, final_time_days, num=time_steps)
-        total_settlement = np.sum(settlement)
-        final_time_settlement = [0]
-
+        total_settlement = np.trapezoid(settlement)
+        final_time_settlement = settlement_history[-1]
         st.session_state[result_key] = {
             "u_hist": u_hist,
             "depth": depth,
@@ -73,8 +72,8 @@ with results:
 
         metric1, metric2, metric3 = st.columns(3)
         metric1.metric("Total settlement", f"{total_settlement:.4f} m")
-        metric2.metric("Settlement at final time", f"{final_time_settlement:.4f} m")
-        metric3.metric("Layer count", f"{layer_count}")
+        metric2.metric('Settlement at final time',f'{final_time_settlement:.4f} m')
+        metric3.metric("Layer count", f'{layer_count}')
 
         tab1, tab2, tab3 = st.tabs(["Settlement", "Initial Profile", "Pore Pressure"])
 

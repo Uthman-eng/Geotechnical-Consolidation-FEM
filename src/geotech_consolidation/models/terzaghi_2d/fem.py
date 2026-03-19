@@ -26,7 +26,6 @@ def boussinesq_condition_2d(x, load, base):
     u[np.isclose(x[1], 0.0)] = 0.0 
     return u
 
-
 def _normalise_depth_interfaces(depths, H):
     depths = np.asarray(depths, dtype=np.float64)
 
@@ -39,7 +38,6 @@ def _normalise_depth_interfaces(depths, H):
         interfaces = np.concatenate((interfaces, [H]))
 
     return interfaces
-
 
 def _as_layer_values(values):
     return np.atleast_1d(np.asarray(values, dtype=np.float64))
@@ -177,7 +175,6 @@ def Get_terzaghi2D_FEA(H: float, W: float, nx: int, load: float, final_time: flo
     b.destroy()
     solver.destroy()
 
-    # --- Settlement post-processing ---
     node_X = msh.geometry.x[:, 0].copy()
     node_Y = msh.geometry.x[:, 1].copy()
     node_depths = -node_Y
@@ -193,4 +190,12 @@ def Get_terzaghi2D_FEA(H: float, W: float, nx: int, load: float, final_time: flo
         node_depths,
     )
 
-    return settlement_surface, u_hist, unique_X, node_X, node_Y
+    total_strain = Mv_profile * u0
+    total_settlement_surface, _ = _settlement_by_surface_column(
+        total_strain[None, :],
+        node_X,
+        node_depths,
+    )
+    total_settlement = np.max(total_settlement_surface[0, :])
+
+    return settlement_surface, total_settlement, u_hist, unique_X, node_X, node_Y

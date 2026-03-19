@@ -24,7 +24,7 @@ def test_2d_model_runs_and_peak_settlement_matches_multilayer_peak():
     cv_values = [1e-3]
     mv_values = [1e-4]
 
-    settlement_surface, u_hist_2d, unique_x, node_x, node_y = Get_terzaghi2D_FEA(
+    settlement_surface, total_settlement_2d, u_hist_2d, unique_x, node_x, node_y = Get_terzaghi2D_FEA(
         H,
         W,
         nx,
@@ -49,7 +49,7 @@ def test_2d_model_runs_and_peak_settlement_matches_multilayer_peak():
         False,
     )
 
-    peak_settlement_2d = np.max(settlement_surface)
+    peak_settlement_2d = total_settlement_2d
     peak_settlement_1d = np.max(settlement_history_1d)
 
     assert settlement_surface.shape[0] == num_time_steps

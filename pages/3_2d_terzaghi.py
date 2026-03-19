@@ -46,9 +46,10 @@ with results:
         final_time = final_time_days * seconds_to_days
         time = np.linspace(0.0, final_time_days, int(time_steps))
 
-        settlement_surface, u_hist, unique_X, node_X, node_Y = Get_terzaghi2D_FEA( H, W, nx, load, final_time, time_steps, Cv, Mv, base, depths=depths)
+        settlement_surface, total_settlement, u_hist, unique_X, node_X, node_Y = Get_terzaghi2D_FEA( H, W, nx, load, final_time, time_steps, Cv, Mv, base, depths=depths)
         st.session_state[result_key] = {
             "settlement_surface": settlement_surface,
+            "total_settlement": total_settlement,
             "u_hist": u_hist,
             "unique_X": unique_X,
             "node_X": node_X,
@@ -64,6 +65,7 @@ with results:
     else:
         result = st.session_state[result_key]
         settlement_surface = result["settlement_surface"]
+        total_settlement = result["total_settlement"]
         u_hist = result["u_hist"]
         unique_X = result["unique_X"]
         node_X = result["node_X"]
@@ -72,9 +74,6 @@ with results:
         time_steps = result["time_steps"]
         load = result["load"]
         layer_count = result["layer_count"]
-
-
-        total_settlement = np.max(settlement_surface)
         final_time_settlement = np.max(settlement_surface[-1, :])
 
         metric1, metric2, metric3 = st.columns(3)

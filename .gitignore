@@ -3,8 +3,5 @@
 .pytest_cache/
 .venv/
 venv/
-.streamlit/
 .DS_Store
-.claude/
-.devcontainer/
 /notes/

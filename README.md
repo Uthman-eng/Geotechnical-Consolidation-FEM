@@ -4,7 +4,7 @@ A Python-based finite element framework for modelling consolidation settlement i
 
 - 1D Terzaghi consolidation
 - 1D multilayer consolidation
-- 2D strip loading using FEM
+- 2D layered strip loading using FEM
 - Verification against analytical solutions and engineering comparison data
 - Streamlit interface for running and visualising the models
 - Verification and demo notebooks for interpretation of results
@@ -17,6 +17,20 @@ Clone the repository:
 git clone https://github.com/Uthman-eng/Geotechnical-Consolidation-FEM.git
 cd Geotechnical-Consolidation-FEM
 ```
+
+There are two simple ways to run the project.
+
+Option 1: use the provided `.devcontainer` setup.
+
+- Open the repository in VS Code
+- Reopen the folder in the dev container
+- Run the app:
+
+```bash
+streamlit run app.py
+```
+
+Option 2: run it directly with Docker.
 
 Build the Docker image:
 
@@ -45,18 +59,17 @@ http://localhost:8501
 For tests inside the container:
 
 ```bash
-python -m pytest -q
+pytest
 ```
 
 ## Features
 
 - 1D single-layer consolidation modelling
 - 1D multilayer consolidation with layer-wise `Cv` and `Mv`
-- 2D FEM consolidation under strip loading
-- Analytical Fourier-series comparison for 1D verification
+- 2D FEM consolidation under strip loading with layered material input
 - Settlement and excess pore pressure plots
-- Streamlit dashboard for interactive parameter input
 - Jupyter notebooks for verification and demonstration
+- Settle3 comparison notebooks with signed percentage difference plots
 
 ## Example Outputs / Results
 
@@ -64,43 +77,46 @@ The project currently produces:
 
 - settlement against time
 - excess pore pressure dissipation with depth
-- 2D pore pressure distributions
+- 2D pore pressure heatmaps
 - FEM against analytical comparison plots
 - 2D surface settlement response across the loaded width
+- FEM against Settle3 comparison plots in the demo notebooks
 
 Example figures used in the project:
 
 1D pore pressure:
 
-![1D pore pressure](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/assets/images/u_data_1D.png)
+![alt text](/assets/images/1d_pp.png)
 
 1D settlement:
 
-![1D settlement](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/assets/images/Settlement_1D.png)
+![alt text](/assets/images/1d_settlement.png)
 
 2D pore pressure:
 
-![2D pore pressure](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/assets/images/u0_2D.png)
+![alt text](/assets/images/2d_pp.png)
 
 2D settlement:
 
-![2D settlement](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/assets/images/Settlement_2D.png)
+![alt text](/assets/images/2d_settlement.png)
 
 ## Project Structure
 
 ```text
 Geotechnical-Consolidation-FEM-1/
 |-- app.py
-|-- pages/                    # Streamlit pages for 1D, multilayer 1D, and 2D
+|-- .devcontainer/            # Optional VS Code dev container setup
+|-- ui/                       
+|-- pages/                    # Streamlit pages
+|-- .streamlit/               # Streamlit theme and local config
 |-- src/
 |   |-- geotech_consolidation/
 |   |   `-- models/           # 1D, multilayer 1D, and 2D FEM solvers
 |   `-- plotting/             # Plotting helpers used by notebooks and Streamlit
 |-- notebooks/                # Main verification notebooks
-|-- demo/                     # Lighter notebooks for visual output / comparison data
+|-- demo/                     # Demo notebooks and Settle3 comparison data
 |-- tests/
-|   |-- unit/
-|   `-- integration/
+|   `-- unit/
 |-- assets/
 |   `-- images/
 |-- Dockerfile
@@ -129,64 +145,39 @@ Settlement is obtained from the pore pressure dissipation using `Mv`:
 s(t) = ∫ Mv(z) [u0(z) - u(z,t)] dz
 ```
 
-In the FEM post-processing, this depth integral is evaluated numerically using trapezoidal quadrature.
+In the FEM post-processing, this depth integral is evaluated numerically using trapezoidal quadrature (or rectangle qaudrature).
 
-For the Boussinesq-type initial condition, the profile is regularised near the drained boundary to avoid the singular behaviour at `z = 0`.
+For the Boussinesq-type initial condition, the profile has been forced to be zero near the drained boundary to avoid the singular behaviour at `z = 0`.
 
 ## Verification & Validation
 
-Verification in this project is mainly carried out through the notebooks in [notebooks](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/notebooks).
-
-Current verification notebooks:
-
-- [notebooks/0_Analytical_Fourier_Quadrature.ipynb](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/notebooks/0_Analytical_Fourier_Quadrature.ipynb)
-- [notebooks/1_terzaghi_1d_singlelayer.ipynb](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/notebooks/1_terzaghi_1d_singlelayer.ipynb)
-- [notebooks/2_terzaghi_1d_multilayer.ipynb](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/notebooks/2_terzaghi_1d_multilayer.ipynb)
-- [notebooks/3_terzaghi_2d.ipynb](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/notebooks/3_terzaghi_2d.ipynb)
-
-Current checks include:
-
-- 1D FEM against the analytical Terzaghi solution
-- arbitrary `u0` Fourier reconstruction checks
-- Boussinesq initial condition comparison
-- mesh and time-step sensitivity checks
-- multilayer logic checks in `pytest`
+Verification in this project is carried in [notebooks](notebooks). This should not be confused with the demo and comparison to settle3 dataset.
 
 Validation work is lighter at this stage, but includes:
 
-- comparison against engineering expectations
-- comparison datasets in [demo/settle3_data](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/demo/settle3_data)
+- comparison datasets in [demo/settle3_data](demo/settle3_data)
 
 Demo notebooks are kept separately in [demo](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/demo):
 
-- [demo/1_terzaghi_1d_singlelayer.ipynb](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/demo/1_terzaghi_1d_singlelayer.ipynb)
-- [demo/2_terzaghi_1d_multilayer.ipynb](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/demo/2_terzaghi_1d_multilayer.ipynb)
-- [demo/3_terzaghi_2d.ipynb](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/demo/3_terzaghi_2d.ipynb)
+- [demo/1_terzaghi_1d_singlelayer.ipynb](demo/1_terzaghi_1d_singlelayer.ipynb)
+- [demo/2_terzaghi_1d_multilayer.ipynb](demo/2_terzaghi_1d_multilayer.ipynb)
+- [demo/3_terzaghi_2d.ipynb](demo/3_terzaghi_2d.ipynb)
 
 ## Tech Stack
 
 - Python
 - NumPy
 - matplotlib
+- Plotly
 - FEniCSx / DOLFINx
-- PETSc
-- MPI
 - Streamlit
 - Jupyter Notebook
 - Docker
-
-## Roadmap
-
-- continue multilayer 1D verification
-- improve 2D verification and interpretation
-- extend layered material handling further in 2D
-- investigate Biot-type coupled consolidation
-- improve test coverage beyond smoke tests
-- refine post-processing and engineering comparison workflows
 
 ## References
 
 - Terzaghi, K. (1943). *Theoretical Soil Mechanics*. Wiley.
 - Biot, M. A. (1941). General theory of three-dimensional consolidation. *Journal of Applied Physics*, 12(2), 155-164.
 - Larson, M. G., and Bengzon, F. (2013). *The Finite Element Method: Theory, Implementation, and Applications*. Springer.
+- Rocscience. *Settle3*. [https://www.rocscience.com/software/settle3](https://www.rocscience.com/software/settle3)
 - FEniCSx Project Documentation: [https://docs.fenicsproject.org/](https://docs.fenicsproject.org/)

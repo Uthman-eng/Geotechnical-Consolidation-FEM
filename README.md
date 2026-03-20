@@ -153,9 +153,7 @@ For the Boussinesq-type initial condition, the profile has been forced to be zer
 
 Verification in this project is carried in [notebooks](notebooks). This should not be confused with the demo and comparison to settle3 dataset.
 
-Validation work is lighter at this stage, but includes:
-
-- comparison datasets in [demo/settle3_data](demo/settle3_data)
+Validation work is lighter at this stage, but includes comparison datasets in [demo/settle3_data](demo/settle3_data)
 
 Demo notebooks are kept separately in [demo](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/demo):
 

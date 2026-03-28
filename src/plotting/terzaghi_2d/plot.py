@@ -115,3 +115,4 @@ def Get_Pore_Pressure_Plot_Plotly(node_X, node_Y, u_hist, time_idx, time, load):
     )
     fig.update_yaxes(scaleanchor="x", scaleratio=2)
     return fig
+

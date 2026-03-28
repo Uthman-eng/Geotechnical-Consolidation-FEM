@@ -1,16 +1,11 @@
 FROM dolfinx/dolfinx:stable
-# add stable exact code 
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+WORKDIR /code
 
-WORKDIR /app
+COPY ./requirements.txt /code/requirements.txt
 
+RUN python -m pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-# copy project files (optional for dev, useful for CI)
-COPY . /app
+COPY . /code
 
-# default to an interactive shell
-
-CMD ["bash"]
+CMD ["streamlit", "run", "app.py"]

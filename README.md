@@ -18,48 +18,10 @@ git clone https://github.com/Uthman-eng/Geotechnical-Consolidation-FEM.git
 cd Geotechnical-Consolidation-FEM
 ```
 
-There are two simple ways to run the project.
-
-Option 1: use the provided `.devcontainer` setup.
-
-- Open the repository in VS Code
-- Reopen the folder in the dev container
-- Run the app:
+Run the project with:
 
 ```bash
-streamlit run app.py
-```
-
-Option 2: run it directly with Docker.
-
-Build the Docker image:
-
-```bash
-docker build -t geotech-consolidation .
-```
-
-Run the container and expose Streamlit:
-
-```bash
-docker run -it -p 8501:8501 geotech-consolidation
-```
-
-Start the app inside the container:
-
-```bash
-streamlit run app.py --server.address 0.0.0.0
-```
-
-Open:
-
-```text
-http://localhost:8501
-```
-
-For tests inside the container:
-
-```bash
-pytest
+docker compose up --build
 ```
 
 ## Features

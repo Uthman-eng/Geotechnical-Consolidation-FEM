@@ -13,7 +13,7 @@ A Python-based finite element framework for modelling consolidation settlement i
 
 ## For Geotechnical Engineers & Students (No Programming Experience Required)
 
-This section is for you if you have never used programming tools before but want to run the consolidation models. You do not need to understand code, you just need to follow the steps below.
+This section is for you if you have never used programming tools before, but want to run the consolidation models. No understanding in programming is needed. Following the steps below will allow you to run the models.
 
 ### What you will need to install first
 
@@ -33,7 +33,7 @@ Download Docker Desktop here: https://www.docker.com/products/docker-desktop. On
 
 ### What is the terminal?
 
-The terminal (also called "Command Prompt" on Windows or "Terminal" on Mac/Linux) is a text-based way of talking to your computer. Instead of clicking buttons, you type short commands and press Enter. Only a handful of commands are needed here. 
+The terminal (also called "Command Prompt" on Windows or "Terminal" on Mac/Linux) is a text based way of talking to your computer. Instead of clicking buttons, you type short commands and press Enter. Only a handful of commands are needed here. 
 
 - On **Windows**: press the Windows key, type `cmd` or `PowerShell`, and press Enter.
 - On **Mac**: press Cmd + Space, type `Terminal`, and press Enter.
@@ -70,7 +70,7 @@ Type the following and press Enter:
 docker compose up --build
 ```
 
-Docker will now download and set up everything it needs (this may take a few minutes the first time). Once it finishes, you will see a message in the terminal with a local address — usually something like `http://localhost:8501`.
+Docker will now download and set up everything it needs (this may take a few minutes the first time). Once it finishes, you will see a message in the terminal with a local address, usually `http://localhost:8501`.
 
 **Step 4 — Open the app**
 
@@ -80,26 +80,17 @@ Open any web browser (Chrome, Firefox, Edge) and go to:
 http://localhost:8501
 ```
 
-You will see a web interface where you can input soil parameters and run the consolidation models, no coding required.
+You will see a web interface where you can input soil parameters and run the consolidation models.
 
 **Step 5 — Stopping the project**
 
 When you are done, go back to the terminal and press `Ctrl + C` to stop the application.
 
-### What can you do in the app?
-
-Once the app is open in your browser, you can:
-
-- Run a **1D single-layer** Terzaghi consolidation analysis by entering your layer's `Cv`, `Mv`, drainage conditions, and load
-- Run a **1D multilayer** analysis for a soil profile with multiple layers, each with their own `Cv` and `Mv` values
-- Run a **2D strip load** analysis to see how pore pressures spread laterally beneath a foundation
-- View plots of settlement against time, excess pore pressure dissipation with depth, and 2D pore pressure heatmaps
-
 ---
 
 ## For Technical Users
 
-A Python-based finite element framework for 1D and 2D consolidation settlement modelling, built on FEniCSx (DOLFINx). The project is fully containerised via Docker and exposes a Streamlit interface alongside Jupyter notebooks for verification and demonstration.
+A Python based finite element framework for 1D and 2D consolidation settlement modelling, built on FEniCSx (DOLFINx). The project is fully containerised via Docker and implements a Streamlit interface alongside Jupyter notebooks for verification and demonstration. The Theory section below is deliberately concise, it indicates the formulation and methods used, not a full derivation. The dissertation accompanying this repository contains a more in depth theoretical development and analysis.
 
 ### Quick Start
 
@@ -116,16 +107,19 @@ Run the project with:
 docker compose up --build
 ```
 
+**Development environment:** The `.devcontainer` configuration has been removed from this repository. The Docker setup is intentionally kept as a runtime environment rather than a development container. If you want to develop or extend the codebase interactively in VS Code, you will need to create your own `devcontainer.json` pointing at the Docker image defined in the `Dockerfile`.
+
 ### Features
 
 - 1D single-layer consolidation modelling (FEM + Fourier series analytical solver for verification)
-- 1D multilayer consolidation with layer-wise `Cv` and `Mv`, including interface continuity enforcement
-- 2D FEM consolidation under strip loading with layered material input (Boussinesq-type initial pore pressure condition)
+- 1D multilayer consolidation with layer-wise `Cv` and `Mv`, with flux continuity at layer interfaces handled as a natural condition in the weak formulation 
+- 2D FEM consolidation under uniform strip loading with layered material input; the initial pore pressure field is taken from Boussinesq elasticity theory for a strip load (see e.g. Craig, 2004)
 - Settlement computed via trapezoidal/rectangle quadrature of the pore pressure dissipation integral
 - Separation of FEM solvers (`src/geotech_consolidation/models/`) from plotting utilities (`src/plotting/`) to allow programmatic use without the Streamlit layer
 - Verification notebooks (`notebooks/`) covering Fourier series convergence, FEM vs analytical comparison, and multilayer behaviour
 - Demo notebooks (`demo/`) with Settle3 comparison datasets and signed percentage difference plots
 - Unit tests in `tests/unit/`
+- The FEM solvers are structured as an importable Python package (`src/geotech_consolidation/`) with a clean separation between solver, post-processing, and visualisation layers. This allows the pore pressure field output to be consumed directly by external scripts or extended post-processing pipelines. Note the package requires either the Docker environment or a manual FEniCSx installation.
 
 ## Example Outputs / Results
 
@@ -161,7 +155,6 @@ Example figures used in the project:
 ```text
 Geotechnical-Consolidation-FEM-1/
 |-- app.py
-|-- .devcontainer/            # Optional VS Code dev container setup
 |-- ui/                       # Shared Streamlit UI components and layout helpers
 |-- pages/                    # Streamlit pages
 |-- .streamlit/               # Streamlit theme and local config
@@ -182,76 +175,43 @@ Geotechnical-Consolidation-FEM-1/
 
 ## Theory
 
-The main 1D governing equation used here is the Terzaghi consolidation equation:
+The 1D governing equation is the Terzaghi consolidation equation:
 
 ```text
 ∂u/∂t = Cv ∂²u/∂z²
 ```
 
-where:
+with `u` the excess pore pressure, `Cv` the coefficient of consolidation, `z` depth, and `t` time.
 
-- `u` = excess pore pressure
-- `Cv` = coefficient of consolidation
-- `z` = depth
-- `t` = time
+This implementation follows Terzaghi's uncoupled formulation, non coupled pore pressure and displacement. Settlement is post-processed from the pore pressure field rather than solved as part of a coupled system, distinguishing it from the full Biot framework (Biot, 1941).
 
-Note that this implementation follows Terzaghi's uncoupled formulation — pore pressure and displacement are not coupled; settlement is post-processed from the pore pressure field rather than solved as part of a coupled system. This distinguishes it from the full Biot consolidation framework (Biot, 1941).
-
-Settlement is obtained from the pore pressure dissipation using `Mv`:
+Settlement is obtained from the pore pressure dissipation via:
 
 ```text
 s(t) = ∫ Mv(z) [u0(z) - u(z,t)] dz
 ```
 
-In the FEM post-processing, this depth integral is evaluated numerically using trapezoidal quadrature (unless stated otherwise).
+evaluated by trapezoidal quadrature over depth (unless stated otherwise).
 
-For the Boussinesq-type initial condition, the profile has been forced to be zero near the drained boundary to avoid the singular behaviour at `z = 0`.
+For the 2D case, the initial pore pressure distribution `u0(z)` is taken from Boussinesq elasticity theory for a uniform strip load. The profile is forced to zero at the drained boundary to avoid the singular behaviour at `z = 0`.
 
 ### Weak form
 
-Multiplying the strong form by a test function `v` and integrating by parts over the domain `Ω = [0, H]` gives the weak form: find `u ∈ V` such that for all `v ∈ V`:
+Find `u ∈ V` such that for all `v ∈ V`:
 
 ```text
 ∫_Ω (∂u/∂t) v dz  +  ∫_Ω Cv (∂u/∂z)(∂v/∂z) dz  =  0
 ```
 
-Boundary terms vanish because the drained boundary enforces `u = 0` (Dirichlet) and the undrained boundary enforces zero flux (homogeneous Neumann). For the multilayer case, `Cv` is piecewise constant and the flux continuity condition at layer interfaces is satisfied naturally by the variational formulation.
+on `Ω = [0, H]`, with `u = 0` at the drained boundary and zero flux at the undrained boundary. For the multilayer case, `Cv` is piecewise constant and flux continuity at layer interfaces is recovered naturally from the variational form (not forced).
 
-### Piecewise discontinuity and Darcy flux at layer interfaces
+### Element and time discretisation
 
-In a multilayer profile, `Cv` is piecewise constant with jump discontinuities at each layer interface `z = z_i`. The physical requirement at an interface is continuity of Darcy flux:
-
-```text
-[q]_{z=z_i}  =  0      where  q = -(k / γw) ∂u/∂z = -Cv (Mv / mv) ∂u/∂z
-```
-
-or, written directly in terms of the consolidation coefficient:
-
-```text
-Cv^+ (∂u/∂z)^+  =  Cv^- (∂u/∂z)^-      at  z = z_i
-```
-
-Because `Cv` jumps at the interface, `∂u/∂z` must also jump in the opposite sense so that their product — the flux — remains continuous. This is a **natural interface condition** in the Galerkin sense: it is not imposed explicitly. Instead, the global weak form integrates over each subdomain separately and the interface flux terms cancel when the test space is globally continuous (CG1). Pore pressure `u` itself is continuous across the interface (enforced by the CG1 continuity of the trial space), while its gradient `∂u/∂z` is allowed to be discontinuous, exactly as the physics requires.
-
-This means the Galerkin discretisation automatically respects both conditions at every interface:
-- `u` continuous (CG1 trial space)
-- `Cv ∂u/∂z` continuous (natural condition, satisfied in the weak sense)
-
-No additional penalty, Lagrange multiplier, or mortar treatment is needed.
-
-### Element choice
-
-Linear Lagrange elements (CG1 / P1) are used for the pore pressure field in all models. The resulting system matrix is sparse and symmetric positive definite, which allows efficient direct or iterative solves. For the 2D model, triangular CG1 elements are used on an unstructured mesh generated by DOLFINx's built-in mesh utilities.
-
-### Time discretisation
-
-A backward Euler (implicit, first-order) scheme is used throughout:
+Linear Lagrange (CG1 / P1) elements are used throughout for 1D, and triangles on an unstructured mesh in 2D. Time stepping is backward Euler with uniform `Δt`:
 
 ```text
 (u^{n+1} - u^n) / Δt  +  A u^{n+1}  =  0
 ```
-
-where `A` is the assembled stiffness operator. Backward Euler is unconditionally stable, which avoids the CFL-type restriction on `Δt` that would apply with an explicit scheme. The time step `Δt` is uniform and user-specified.
 
 ## Verification & Validation
 
@@ -259,14 +219,12 @@ Verification in this project is carried in [notebooks](notebooks). This should n
 
 ### Convergence
 
-Spatial and temporal convergence studies are reported in the verification notebooks for the 1D single-layer model. Results under uniform mesh and time-step refinement:
+Spatial and temporal convergence studies for the 1D single-layer model are reported in the verification notebooks. Observed rates under uniform refinement:
 
 | Refinement | Observed order |
 |------------|---------------|
 | Spatial (h-refinement, fixed Δt) | ~2.0 |
 | Temporal (Δt-refinement, fixed h) | ~1.1 |
-
-The spatial rate of ~2.0 is consistent with CG1 elements on a smooth problem (optimal L2 convergence for linear elements). The temporal rate of ~1.1 is consistent with backward Euler at O(Δt), with the slight elevation above 1.0 with minor deviation from unity likely reflecting the finite convergence range studied.
 
 ### Validation
 

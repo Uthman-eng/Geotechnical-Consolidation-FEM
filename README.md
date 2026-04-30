@@ -155,7 +155,7 @@ Geotechnical-Consolidation-FEM-1/
 
 ## Theory
 
-This implementation uses Terzaghi's uncoupled formulation — pore pressure and displacement are not coupled. Settlement is post-processed from the pore pressure field rather than solved as part of a coupled system, distinguishing it from full Biot (Biot, 1941).
+This implementation uses Terzaghi's uncoupled formulation (pore pressure and displacement are not coupled). Settlement is post processed from the pore pressure field, rather than solved, as part of a coupled system, distinguishing it from full Biot (Biot, 1941).
 
 The governing equation is:
 
@@ -173,7 +173,7 @@ s(t) = ∫ Mv(z) [u0(z) - u(z,t)] dz
 
 evaluated by trapezoidal quadrature over depth.
 
-For the 2D case, `u0` is taken from Boussinesq elasticity for a uniform strip load. The profile is forced to zero at the drained boundary to avoid the singularity at `z = 0`.
+For the 2D case, `u0` is taken from Boussinesq linear elasticity for a uniform strip load. The profile is forced to zero at the drained boundary to avoid the singularity at `z = 0`.
 
 ## Verification & Validation
 

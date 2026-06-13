@@ -4,8 +4,8 @@ import plotly.express as px
 
 from ui.inputs import parse_float_list
 from ui.style import page_style
-from src.geotech_consolidation.models.terzaghi_1d_multi.fem import Get_terzaghi1dMultilayer_FEA
-from src.plotting.terzaghi_1d.plot import Get_Settlement_Plot_Plotly, consolidation_heatmap_plotly
+from geotech_consolidation.models.terzaghi_1d_multi.fem import Get_terzaghi1dMultilayer_FEA
+from geotech_consolidation.plotting.terzaghi_1d.plot import Get_Settlement_Plot_Plotly, consolidation_heatmap_plotly
 
 
 page_style("1D Multilayer Consolidation")

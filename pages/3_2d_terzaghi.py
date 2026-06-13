@@ -3,8 +3,8 @@ import numpy as np
 
 from ui.inputs import parse_float_list
 from ui.style import page_style
-from src.geotech_consolidation.models.terzaghi_2d.fem import Get_terzaghi2D_FEA
-from src.plotting.terzaghi_2d.plot import (
+from geotech_consolidation.models.terzaghi_2d.fem import Get_terzaghi2D_FEA
+from geotech_consolidation.plotting.terzaghi_2d.plot import (
     Get_Centre_Line_Settlement_Plot_Plotly,
     Get_Mesh_Plot_Plotly,
     Get_Pore_Pressure_Plot_Plotly,

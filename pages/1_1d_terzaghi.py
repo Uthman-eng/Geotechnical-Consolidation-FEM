@@ -4,8 +4,8 @@ import plotly.express as px
 
 from ui.style import page_style
 
-from src.geotech_consolidation.models.terzaghi_1d.fem import Get_terzaghi1D_FEA
-from src.plotting.terzaghi_1d.plot import Get_Settlement_Plot_Plotly, consolidation_heatmap_plotly
+from geotech_consolidation.models.terzaghi_1d.fem import Get_terzaghi1D_FEA
+from geotech_consolidation.plotting.terzaghi_1d.plot import Get_Settlement_Plot_Plotly, consolidation_heatmap_plotly
 page_style("1D Terzaghi Consolidation")
 
 seconds_to_days = 60 * 60 * 24

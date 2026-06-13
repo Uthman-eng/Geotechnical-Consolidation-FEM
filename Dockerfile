@@ -8,4 +8,6 @@ RUN python -m pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 COPY . /code
 
+RUN python -m pip install --no-deps -e .
+
 CMD ["streamlit", "run", "app.py"]

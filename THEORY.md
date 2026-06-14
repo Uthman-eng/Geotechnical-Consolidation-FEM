@@ -23,15 +23,15 @@ With $u$ excess pore pressure, $k$ hydraulic conductivity, $m_v$ coefficient of 
 
 **Uniform initial condition** (*single drainage at the ground boundary*):
 
-$$u_e(z,t) = \sum_{n=1}^{\infty} \frac{2u_i}{n\pi}\,(1 - \cos n\pi)\,\sin\!\left(\frac{n\pi z}{2d}\right)\exp\!\left(-\frac{n^2\pi^2 c_v t}{4d^2}\right)$$
+$$u_e(z,t) = \sum_{n=1}^{\infty} \frac{2u_i}{n\pi}(1 - \cos n\pi)\sin\left(\frac{n\pi z}{2d}\right)\exp\left(-\frac{n^2\pi^2 c_v t}{4d^2}\right)$$
 
 **Generalised series** (*arbitrary `u0`*):
 
-$$u(z,t) = \sum_{n=1,3,5,\dots} B_n \,\sin\!\left(\frac{n\pi z}{2H}\right) \exp\!\left(-\frac{n^2\pi^2 c_v t}{4H^2}\right)$$
+$$u(z,t) = \sum_{n=1,3,5,\dots} B_n \sin\left(\frac{n\pi z}{2H}\right) \exp\left(-\frac{n^2\pi^2 c_v t}{4H^2}\right)$$
 
 **Generalised coefficient** (*$L^2$ orthogonal projection of `u0` onto each odd sine basis element*):
 
-$$B_n = \frac{2}{H}\int_0^H u_0(z)\,\sin\!\left(\frac{n\pi z}{2H}\right)\,dz,
+$$B_n = \frac{2}{H}\int_0^H u_0(z)\sin\left(\frac{n\pi z}{2H}\right)dz,
 \qquad n = 1,3,5,\dots$$
 
 The basis $\sin(n\pi z / 2H)$ satisfies the boundary conditions exactly and is orthogonal in $L^2([0,H])$. The integral for $B_n$ has **no closed form** for the
@@ -43,12 +43,12 @@ This solution and its quadrature are implemented and verified in [notebooks/0_An
 
 **Weak integral form** *(with the boundary term vanishing):*
 
-$$\int_\Omega v \frac{\partial u}{\partial t}\, dx + C_v \int_\Omega \nabla v \cdot \nabla u \, dx = 0$$
+$$\int_\Omega v \frac{\partial u}{\partial t} dx + C_v \int_\Omega \nabla v \cdot \nabla u dx = 0$$
 
 Pore pressure is approximated with **linear functions** (CG1, $p=1$). Backward Euler discretisation at each time step then becomes:
 
-$$\int_\Omega v\, u^{n+1} \, dx + \Delta t\, C_v \int_\Omega \nabla v \cdot \nabla u^{n+1} \, dx
-= \int_\Omega v\, u^n \, dx$$
+$$\int_\Omega v u^{n+1} dx + \Delta t C_v \int_\Omega \nabla v \cdot \nabla u^{n+1}  dx
+= \int_\Omega v u^n dx$$
 
 where $u^n$ is the previous time step pore pressure, and $u^{n+1}$ is the next time step pore pressure.
 
@@ -58,7 +58,7 @@ The variational formulation gives pore pressure, **not displacement**. Settlemen
 
 **Settlement integral**:
 
-$$s(t) = \int_0^H m_v(z)\,[\,u_0(z) - u(z,t)\,]\, dz$$
+$$s(t) = \int_0^H m_v(z)[u_0(z) - u(z,t)] dz$$
 
 This is evaluated numerically via **trapezoidal quadrature** over depth. For 2D, this integration is performed column-by-column through the nodal array to give a surface settlement profile. Settlement is measured only as downward displacement; other axes are ignored.
 
@@ -68,15 +68,15 @@ Error is measured in $L^2$ inner-product spaces, which FEM solutions naturally l
 
 **Interpolation error in $H^1$** *(Brenner & Scott, 2008, Theorem 5.4.4):*
 
-$$\lVert u - u_h \rVert_{H^1} \le C\, h^{m-1}\, \lvert u \rvert_{H^m}$$
+$$\lVert u - u_h \rVert_{H^1} \le C h^{m-1} \lvert u \rvert_{H^m}$$
 
 **Aubin–Nitsche duality lifts this to $L^2$**, gaining one power of $h$ *(Brenner & Scott, 2008, Theorem 5.4.8):*
 
-$$\lVert u - u_h \rVert_{L^2} \le C\, h^{m}\, \lvert u \rvert_{H^m}$$
+$$\lVert u - u_h \rVert_{L^2} \le C h^{m} \lvert u \rvert_{H^m}$$
 
 **Linear elements** ($p=1$) bring the bound to:
 
-$$\lVert u - u_h \rVert_{L^2} \le C\, h^2\, \lvert u \rvert_{H^2}$$
+$$\lVert u - u_h \rVert_{L^2} \le C h^2 \lvert u \rvert_{H^2}$$
 
 $u$ is assumed smooth relative to the linear polynomial degree, so $m = p+1$ is appropriate.
 
@@ -100,14 +100,11 @@ The initial condition uses the Boussinesq strip-load stress field. In 1D this is
 
 **1D Boussinesq strip-load stress** *(directly beneath the centre of the load)*:
 
-$$\sigma_z(z) = \frac{2q}{\pi}\left[\arctan\!\left(\frac{B}{2z}\right)
-+ \frac{Bz}{2z^2 + \tfrac{B^2}{2}}\right]$$
+$$\sigma_z(z) = \frac{2q}{\pi}\left[\arctan\!\left(\frac{B}{2z}\right) - \frac{Bz}{2z^2 + \frac{B^2}{2}}\right]$$
 
 **2D Boussinesq strip-load stress field:**
 
-$$\sigma_z(X,Z) = \frac{q}{\pi}\left[\arctan\!\left(\frac{X+B}{Z}\right)
-- \arctan\!\left(\frac{X-B}{Z}\right)
-+ Z\left(\frac{X+B}{(X+B)^2+Z^2} - \frac{X-B}{(X-B)^2+Z^2}\right)\right]$$
+$$\sigma_z(X,Z) = \frac{q}{\pi}\left[\arctan\!\left(\frac{X+B}{Z}\right) - \arctan\!\left(\frac{X-B}{Z}\right) - Z\left(\frac{X+B}{(X+B)^2+Z^2} - \frac{X-B}{(X-B)^2+Z^2}\right)\right]$$
 
 $Z$ is depth (positive down), $X$ is horizontal distance from the load centre, $B$ is the strip half-width.
 
@@ -155,7 +152,7 @@ Both initial conditions recover the same slopes. The bound depends on solution s
 
 ## References
 
-- Aziz, U. (2026). *Finite Element Modelling of Consolidation Settlement: Implementation, Verification and Open-Source Delivery* (BEng dissertation).
+- Aziz, U. (2026). *Finite Element Modelling of Consolidation Settlement: Implementation, Verification and Open-Source Delivery* (dissertation).
 - Brenner, S. C., and Scott, L. R. (2008). *The Mathematical Theory of Finite Element Methods* (3rd ed.). Springer.
 - Larsson, M. G., and Bengzon, F. (2013). *The Finite Element Method: Theory, Implementation, and Applications*. Springer.
 - Craig, R. F. (2004). *Craig's Soil Mechanics* (7th ed.). Spon Press.

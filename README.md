@@ -111,7 +111,7 @@ with $u$ excess pore pressure, $C_v$ coefficient of consolidation, $z$ depth, an
 
 Settlement is computed from pore pressure dissipation:
 
-$$s(t) = \int_0^H m_v(z)\,[\,u_0(z) - u(z,t)\,]\, dz$$
+$$s(t) = \int_0^H m_v(z)[u_0(z) - u(z,t)] dz$$
 
 
 For the 2D case, $u0$ is taken from the Boussinesq strip-load stress field, linear elasticity for a uniform strip load. The profile is forced to zero at the drained boundary to avoid the singularity at $z = 0$.

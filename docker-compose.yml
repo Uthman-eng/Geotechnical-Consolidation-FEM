@@ -1,0 +1,7 @@
+services:
+  streamlit:
+    build: .
+    volumes:
+      - .:/code
+    ports:
+      - "8501:8501"

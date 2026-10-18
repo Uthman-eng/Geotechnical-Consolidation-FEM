@@ -1,142 +1,133 @@
-# Finite Element Methods for Geotechnical Consolidation
+# Geotechnical Consolidation FEM (FEniCSx)
 
-This repository explores 1D and 2D consolidation modelling for saturated soils using via FEniCSx. The focus is on Terzaghi consolidation theory, comparing analytical and FEM pore-pressure dissipation and settlement. The project is still under development.
+Interactive FEM dashboard for soil consolidation settlement. Enter soil, geometry, and time parameters, run a model, and inspect pore-pressure fields and settlement curves.
 
-## Current Status
+<img src="assets/images/ui_multilayer_settlement.png" width="820" alt="1D multilayer Terzaghi dashboard — parameter sidebar on the left, settlement vs time on the right">
 
-- Single-layer 1D modelling and verification
-- Multilayer 1D solving is implemented, and multilayer verification is still under development
-- 2D work is present as an early draft
+> This is the dissertation artifact — an interactive demo of the methods. A cleaner, library-grade reimplementation is in progress at [GeoConsolidation](https://github.com/Uthman-eng/GeoConsolidation).
+
+## What it does
+
+Pick a model in the sidebar, enter parameters, run. Outputs are pore-pressure fields and settlement vs time.
+
+- **1D single-layer** — homogeneous profile, verification baseline
+- **1D multilayer** — piecewise $C_v$ and $M_v$
+- **2D strip load** — Boussinesq initial field, layered materials
+
+## Interface
+
+Each page is one model: drive it from the sidebar on the left, read the results on the right — headline settlement figures up top, tabbed plots (settlement, initial profile, pore pressure, mesh) below.
+
+**1D multilayer** — layer depths, $M_v$ and permeability per layer; settlement vs time output:
+
+<img src="assets/images/ui_multilayer_settlement.png" width="820" alt="1D multilayer inputs and settlement vs time curve">
+
+**2D strip load** — layered properties with depth interfaces; pore-pressure field with a time-step slider:
+
+<img src="assets/images/ui_2d_porepressure.png" width="820" alt="2D layered inputs and Boussinesq pore-pressure field at t = 0">
+
+<details>
+<summary>More output plots</summary>
+
+| 1D pore pressure | 1D settlement |
+|---|---|
+| <img src="assets/images/1d_pp.png" width="380" alt="1D pore-pressure isochrones"> | <img src="assets/images/1d_settlement.png" width="380" alt="1D settlement vs time"> |
+
+| 2D pore pressure | 2D settlement |
+|---|---|
+| <img src="assets/images/2d_pp.png" width="380" alt="2D pore-pressure field"> | <img src="assets/images/2d_settlement.png" width="380" alt="2D settlement vs time"> |
+
+</details>
+
+## Run it
+
+```bash
+git clone https://github.com/Uthman-eng/Geotechnical-Consolidation-FEM.git
+cd Geotechnical-Consolidation-FEM
+docker compose up --build
+```
+
+The first build takes a few minutes while Docker sets everything up. When it finishes, open **<http://localhost:8501>** in a browser — this is the interface for entering soil parameters and running the models. Stop with `Ctrl + C` in the terminal.
+
+<details>
+<summary>No coding experience? Read this.</summary>
+
+You only need two free tools:
+
+- **[Git](https://git-scm.com/downloads)** — downloads the project onto your computer.
+- **[Docker Desktop](https://www.docker.com/products/docker-desktop)** — runs the project in a self-contained box, so you don't have to install Python or anything else yourself. After installing, **open it and leave it running**.
+
+Open a terminal:
+
+- **Windows:** press the Windows key, type `cmd`, press Enter.
+- **Mac:** press Cmd + Space, type `Terminal`, press Enter.
+
+Then run the three commands in the block above, one at a time, pressing Enter after each.
+
+</details>
+
+> The .devcontainer configuration has been removed. If you want to develop interactively in VS Code, create your own devcontainer.json pointing at the Dockerfile.
+
+## Under the hood
+
+- FEniCSx / DOLFINx weak-form solvers in [`src/geotech_consolidation/models/`](src/geotech_consolidation/models/); settlement via trapezoidal quadrature of pore-pressure dissipation
+- Terzaghi uncoupled formulation (pore pressure and displacement not coupled), distinct from full Biot *(Biot, 1941)*
+- Fourier analytical solver as reference solution
+
+## Verification & validation
+
+- **Convergence** — L² error against the Fourier analytical solution (Aubin–Nitsche rate check): [`notebooks/`](notebooks/)
+- **Validation** — Settle3 comparison against the FEM output (kept separate from verification): [`demo/`](demo/)
+- Bounds, rates, and the Nyquist aliasing argument are written up in [THEORY.md](THEORY.md)
 
 ## Theory
 
-The governing equation solved here is a diffusion type excess pore pressure equation
+Terzaghi uncoupled consolidation; settlement post-processed from pore-pressure dissipation rather than solved as a coupled system. Governing equation:
+
+$$\frac{\partial u}{\partial t} = C_v \nabla^2 u$$
+
+with $u$ excess pore pressure, $C_v$ coefficient of consolidation, $z$ depth, and $t$ time. Settlement is computed from pore-pressure dissipation:
+
+$$s(t) = \int_0^H m_v(z)\,[u_0(z) - u(z,t)]\, dz$$
+
+For the 2D case, $u_0$ is taken from the Boussinesq strip-load stress field (linear elasticity for a uniform strip load), forced to zero at the drained boundary to avoid the singularity at $z = 0$.
+
+Full derivation — weak form, discrete system, convergence bounds, settlement integral, and the Nyquist aliasing argument — is in [THEORY.md](THEORY.md).
+
+## Project structure
 
 ```text
-du/dt = Cv d²u/dz²
-```
-
-where:
-
-- `u` is excess pore pressure
-- `t` is time
-- `z` is depth
-- `Cv` is the coefficient of consolidation
-
-Where the top boundary is treated as drained, and is enforced to zero.
-
-Settlement is calculated from the the pore pressure dissipation history using the compressibility parameter `Mv`. 
-Settlement = ∫ Mv​(z) * Δσ′(z) * dz (integral over the domain)
-
-
-
-Modelling notes for interpretation and verification:
-
-1. The Boussinesq initial pore pressure profile is zeroed near the drained boundary to avoid singular behaviour at `z = 0`, where the equaion collapse to a singularity.
-2. Settlement is currently evaluated using a discrete depth summation over the mesh spacing. This is a numerical quadrature choice. Comparison to alternatives quadrature choices, such as trapezoidal integration, so not to be confused with post processing error.
-## Repository Structure
-
-```text
-Geotechnical-Consolidation-FEM-1/
+Geotechnical-Consolidation-FEM/
 |-- app.py
-|-- pages/
-|   |-- 1_1d_terazaghi.py
-|   `-- 2_1d_multilayer_terazaghi.py
-|-- demo/
-|   |-- 1_terzaghi_1d.singlelayer.ipynb
-|   |-- 2_terzaghi_1d_multilayer.ipynb
-|   `-- 7_terzaghi_2d.ipynb
-|-- notebooks/
-|   |-- 1_terzaghi_1d_singlelayer.ipynb
-|   |-- 2_Analytical_Fourier_Series.ipynb
-|   |-- 3_terzaghi_1d_multilayer.ipynb
-|   |-- 4_terzaghi_2d.ipynb
-|-- src/
-|   |-- geotech_consolidation/
-|   |   `-- models/
-|   |       |-- terzaghi_1d/
-|   |       |-- terzaghi_1d_multi/
-|   |       `-- terzaghi_2d/
-|   `-- plotting/
-|       |-- terzaghi_1d/
-|       `-- terzaghi_2d/
-|-- tests/
-|   `-- unit/
-|-- assets/
-|   `-- images/
+|-- ui/                       # Shared Streamlit UI components
+|-- pages/                    # Streamlit pages
+|-- .streamlit/               # Streamlit theme and config
+|-- src/geotech_consolidation/
+|   |-- models/               # FEM solvers
+|   `-- plotting/             # Plotting helpers
+|-- notebooks/                # Verification notebooks
+|-- demo/                     # Settle3 comparison
+|-- assets/images/
 |-- Dockerfile
+|-- docker-compose.yml
+|-- pyproject.toml
 |-- requirements.txt
-`-- LICENSE
+|-- THEORY.md
+|-- LICENSE
+`-- README.md
 ```
 
-## Environment Setup
+## Tech stack
 
-The FEM solvers depend on the DOLFINx / PETSc / MPI stack. The recommended workflow is to run this project inside Docker.
-
-### Docker
-
-Build the image:
-
-```bash
-docker build -t geotech-consolidation .
-```
-
-Run the container:
-
-```bash
-docker run -it -p 8501:8501 geotech-consolidation
-```
-
-Then start Streamlit inside the container:
-
-```bash
-streamlit run app.py --server.address 0.0.0.0
-```
-
-Open the app at [http://localhost:8501](http://localhost:8501).
-
-## Running Checks
-
-Automated checks in [tests/unit](/Users/uthmanaziz/Desktop/Github/Consolidation-FEM/Geotechnical-Consolidation-FEM-1/tests/unit).
-
-Typical command:
-
-```bash
-python -m pytest -q
-```
-
-## Verification and Demo Notebooks
-
-The Jupyter notebooks are the main place for verification, comparison, and demonstration of the FEM models.
-
-- Verification notebooks focus on analytical comparison, convergence studies, interface checks, and interpretation of consolidation behaviour.
-- Demo notebooks are lighter notebooks intended mainly for visualising pore pressure and settlement outputs.
-
-## Demo Figures
-
-### 1D Consolidation
-
-Example 1D excess pore-pressure result:
-
-<img src="assets/images/u_data_1D.png" width="450" alt="1D pore pressure response" />
-
-Example 1D settlement result:
-
-<img src="assets/images/Settlement_1D.png" width="450" alt="1D settlement response" />
-
-### 2D Consolidation
-
-Example 2D excess pore-pressure result:
-
-<img src="assets/images/u0_2D.png" width="450" alt="2D pore pressure response" />
-
-Example 2D settlement result:
-
-<img src="assets/images/Settlement_2D.png" width="450" alt="2D settlement response" />
+Python, NumPy, FEniCSx / DOLFINx, Plotly, matplotlib, Streamlit, Jupyter, Docker.
 
 ## References
 
+- Aziz, U. (2026). *Finite Element Modelling of Consolidation Settlement: Implementation, Verification and Open-Source Delivery* (dissertation).
 - Terzaghi, K. (1943). *Theoretical Soil Mechanics*. Wiley.
-- Biot, M. A. (1941). General theory of three-dimensional consolidation. *Journal of Applied Physics*, 12(2), 155-164.
-- FEniCSx Project Documentation: [https://docs.fenicsproject.org/](https://docs.fenicsproject.org/)
-- Larson, M. G., and Bengzon, F. (2013). *The Finite Element Method: Theory, Implementation, and Applications*. Springer.
+- Biot, M. A. (1941). General theory of three-dimensional consolidation. *Journal of Applied Physics*, 12(2), 155–164.
+- Craig, R. F. (2004). *Craig's Soil Mechanics* (7th ed.). Spon Press.
+- Brenner, S. C., & Scott, L. R. (2008). *The Mathematical Theory of Finite Element Methods* (3rd ed.). Springer.
+- Larsson, M. G., & Bengzon, F. (2013). *The Finite Element Method: Theory, Implementation, and Applications*. Springer.
+- Rocscience. *Settle3*. [https://www.rocscience.com/software/settle3](https://www.rocscience.com/software/settle3)
+- FEniCSx docs: [https://docs.fenicsproject.org/](https://docs.fenicsproject.org/)

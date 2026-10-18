@@ -30,8 +30,6 @@ def initial_condition2(x, load, base):
 
 def _normalise_layer_depths(depths, H):
     depths = np.asarray(depths, dtype=np.float64)
-    if depths.ndim != 1 or depths.size == 0:
-        raise ValueError("depths must be a non-empty 1D sequence.")
 
     if np.isclose(depths[0], 0.0):
         layer_depths = depths.copy()
@@ -40,9 +38,6 @@ def _normalise_layer_depths(depths, H):
 
     if not np.isclose(layer_depths[-1], H):
         layer_depths = np.concatenate((layer_depths, [H]))
-
-    if np.any(np.diff(layer_depths) <= 0):
-        raise ValueError("depths must be strictly increasing.")
 
     return layer_depths
 
@@ -55,8 +50,6 @@ def _layer_numbers_from_depths(depth_values, layer_depths):
 
 def _layer_values_at_depths(depth_values, layer_depths, layer_values):
     layer_values = np.asarray(layer_values, dtype=np.float64)
-    if len(layer_depths) != len(layer_values) + 1:
-        raise ValueError("layer depths and layer values must define the same number of layers.")
     return layer_values[_layer_numbers_from_depths(depth_values, layer_depths)]
 
 
@@ -96,10 +89,6 @@ def Get_terzaghi1dMultilayer_FEA(depths, num:float, Load:float, T:float, time_st
     H = max(depths)
     z = np.linspace(0, H, num + 1, dtype= np.float64)
     layer_depths = _normalise_layer_depths(depths, H)
-
-    if len(layer_depths) != len(Cv) + 1 or len(Cv) != len(Mv):
-        raise ValueError("depths, Cv, and Mv must define the same number of layers.")
-
 
     # def mesh     
     msh = mesh.create_interval(
